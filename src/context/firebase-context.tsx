@@ -117,7 +117,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({children}) => {
     // reset password
     const resetPassword = async (email: string) => {
         await sendPasswordResetEmail(auth, email, {
-            url: "http://localhost:3000/login", // redirect after click
+            url: "https://bulksms-weld.vercel.app/login",
         });
     };
 
@@ -150,8 +150,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({children}) => {
         await reauthenticateWithCredential(auth.currentUser, credential);
         await updatePassword(auth.currentUser, newPassword);
     };
-
- 
 
     const createCampaign = async ({name, message, file}: {name: string; message: string; file?: File}) => {
         if (!user) throw new Error("No user logged in");

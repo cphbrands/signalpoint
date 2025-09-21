@@ -29,7 +29,7 @@ export function ForgotPasswordForm({className, ...props}: React.ComponentProps<"
         const email = target.email.value.trim();
 
         try {
-            await resetPassword(email);
+            await resetPassword(email,);
             setSuccess("Reset link sent! Check your email.");
         } catch (err: unknown) {
             if (err instanceof Error) {
@@ -38,7 +38,7 @@ export function ForgotPasswordForm({className, ...props}: React.ComponentProps<"
                 setError("Something went wrong");
             }
         } finally {
-            setLoading(false); // stop loading
+            setLoading(false); 
         }
     };
 

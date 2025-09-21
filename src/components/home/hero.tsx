@@ -1,5 +1,6 @@
 import {ArrowRight, CheckCircle2, Star} from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export const Hero = () => {
     return (
@@ -26,7 +27,6 @@ export const Hero = () => {
                             </span>
                         </h1>
 
-                        {/* Subheadline */}
                         <p className="text-xl text-black/60 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
                             Reach your customers instantly with our reliable bulk SMS platform. 99.9% delivery rate,
                             global coverage, and enterprise-grade security.
@@ -44,13 +44,13 @@ export const Hero = () => {
 
                         {/* CTA Buttons */}
                         <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                            <button className="bg-gradient-to-r from-blue-600 to-purple-600 flex items-center gap-2 px-6 rounded-full text-white font-semibold h-10">
+                            <Link href="/dashboard/create-campaign" className="bg-gradient-to-r from-blue-600 to-purple-600 flex items-center gap-2 px-6 rounded-full text-white font-semibold h-10">
                                 Start Campaign
                                 <ArrowRight className="ml-2 h-5 w-5" />
-                            </button>
-                            <button className=" px-6 rounded-full text-black border h-10  border-black/10">
+                            </Link>
+                            <a href="#pricing" className=" px-6 rounded-full flex items-center justify-center text-black border h-10  border-black/10">
                                 View Pricing
-                            </button>
+                            </a>
                         </div>
 
                         {/* Social Proof */}

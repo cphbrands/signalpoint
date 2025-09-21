@@ -37,7 +37,7 @@ const HowItWorks = () => {
     ];
 
     return (
-        <section className="py-20 ">
+        <section id="how-it-works" className="py-20 ">
             <div className="max-w-screen-xl mx-auto px-4">
                 <div className="text-center mb-16">
                     <h2 className="text-4xl font-bold text-gray-900 mb-4">

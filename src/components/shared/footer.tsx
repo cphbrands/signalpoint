@@ -157,23 +157,6 @@ const Footer = () => {
                     </div>
                 </div>
 
-                {/* Newsletter Signup */}
-                <div className="border-t border-gray-800 pt-8 mb-8">
-                    <div className="max-w-md">
-                        <h4 className="font-semibold text-white mb-4">Stay Updated</h4>
-                        <p className="text-gray-400 mb-4">Get the latest updates, tips, and industry insights.</p>
-                        <div className="flex gap-3">
-                            <input
-                                type="email"
-                                placeholder="Enter your email"
-                                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                            />
-                            <button className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-                                Subscribe
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
                 {/* Bottom Footer */}
                 <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">

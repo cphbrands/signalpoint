@@ -51,7 +51,9 @@ const CampaignTable: React.FC<CampaignTableProps> = ({campaigns}) => (
                                 ? "Instant"
                                 : new Date(c.scheduledAt.toString()).toLocaleString()}
                         </TableCell>
-                        <TableCell>{c.delivered}</TableCell>
+                        <TableCell>
+                            {c.delivered} {" "} ({((c.delivered * 100) / c.contactCount).toFixed(0)}%){" "}
+                        </TableCell>
                         <TableCell>
                             <CampaignStatusBadge status={c.status} />
                         </TableCell>

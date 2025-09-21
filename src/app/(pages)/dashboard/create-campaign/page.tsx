@@ -7,9 +7,10 @@ import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Textarea} from "@/components/ui/textarea";
 import {useUser} from "@/context/firebase-context";
-import {db} from "@/firebase";
+import {db, storage} from "@/firebase";
 import useCurrentCredits from "@/hooks/use-current-credit";
 import {addDoc, collection, doc, increment, serverTimestamp, updateDoc} from "firebase/firestore";
+import {getDownloadURL, ref, uploadBytes} from "firebase/storage";
 import {Info, Loader2} from "lucide-react";
 import Link from "next/link";
 import {useMemo, useState} from "react";
@@ -21,7 +22,7 @@ export default function CreateCampaign() {
     const [campaignName, setCampaignName] = useState("");
     const [message, setMessage] = useState("");
     const [contactCount, setContactCount] = useState<number>(0);
-    const [driveLink, setDriveLink] = useState("");
+    const [file, setFile] = useState<File | null>(null);
     const [sendType, setSendType] = useState<"now" | "later">("now");
     const [scheduledDate, setScheduledDate] = useState("");
     const [loading, setLoading] = useState(false);
@@ -43,7 +44,7 @@ export default function CreateCampaign() {
         if (!campaignName.trim()) return "Campaign name is required!";
         if (!message.trim()) return "Message cannot be empty!";
         if (contactCount <= 0) return "Please enter a valid contact count!";
-        if (!driveLink.trim()) return "Please provide a Google Drive shareable link!";
+        if (!file) return "Please upload a CSV/XLS/XLSX file!";
         if (!user) return "User not found!";
         if ((userCurrentCredits ?? 0) < requiredCredits) return "Not enough credits to create this campaign!";
         if (sendType === "later" && new Date(scheduledDate) <= new Date())
@@ -64,11 +65,17 @@ export default function CreateCampaign() {
         setLoading(true);
 
         try {
+            // upload file to Firebase storage
+            const fileRef = ref(storage, `campaign-files/${user!.uid}/${Date.now()}-${file!.name}`);
+            await uploadBytes(fileRef, file!);
+            const fileURL = await getDownloadURL(fileRef);
+
+            // save campaign
             await addDoc(collection(db, "campaigns"), {
                 userId: user!.uid,
                 name: campaignName,
                 message,
-                driveLink,
+                fileURL,
                 contactCount,
                 segments,
                 requiredCredits,
@@ -86,7 +93,7 @@ export default function CreateCampaign() {
             setCampaignName("");
             setMessage("");
             setContactCount(0);
-            setDriveLink("");
+            setFile(null);
             setScheduledDate("");
             setError("");
         } catch (err) {
@@ -150,26 +157,18 @@ export default function CreateCampaign() {
                     </div>
 
                     <div>
-                        <Label className="mb-2">Google Drive File Link</Label>
+                        <Label className="mb-2">Upload File (CSV/XLS/XLSX)</Label>
                         <Input
-                            type="url"
-                            placeholder="Paste shareable link here"
-                            value={driveLink}
-                            onChange={(e) => setDriveLink(e.target.value)}
+                            type="file"
+                            accept=".csv,.xls,.xlsx"
+                            onChange={(e) => setFile(e.target.files?.[0] || null)}
                         />
                         <div className="text-sm text-gray-500 mt-1">
                             <strong>Instructions:</strong>
                             <ul className="list-disc ml-5 mt-1 space-y-1">
-                                <li>Upload your CSV/XLSX file to your Google Drive.</li>
-                                <li>
-                                    Right-click the file &gt; Get link &gt; make sure the link is set to{" "}
-                                    <strong>Anyone with the link can view</strong>.
-                                </li>
-                                <li>Copy the shareable link and paste it above.</li>
-                                <li>
-                                    Ensure the file is accessible publicly; otherwise, the campaign won&apos;t process
-                                    correctly.
-                                </li>
+                                <li>Upload your contacts file in CSV/XLS/XLSX format.</li>
+                                <li>File will be stored securely and accessible to admin for processing.</li>
+                                <li>Max file size recommended: 5MB.</li>
                             </ul>
                         </div>
                     </div>
@@ -228,7 +227,7 @@ export default function CreateCampaign() {
                         type="submit"
                         disabled={
                             loading ||
-                            !driveLink.trim() ||
+                            !file ||
                             !campaignName.trim() ||
                             !message.trim() ||
                             contactCount <= 0 ||

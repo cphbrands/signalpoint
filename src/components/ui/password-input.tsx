@@ -14,7 +14,7 @@ export default function PasswordInput({id, ...props}: React.ComponentProps<"inpu
                 onClick={() => setIsShow(!isShow)}
                 className="absolute top-1/2 right-3 -translate-y-1/2"
             >
-                {isShow ? <Eye size={16} /> : <EyeOff size={16} />}
+                {!isShow ? <Eye size={16} /> : <EyeOff size={16} />}
             </button>
         </div>
     );

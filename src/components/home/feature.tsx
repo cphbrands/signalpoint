@@ -1,4 +1,5 @@
 import {Clock, Globe, Shield, Smartphone, Users, Zap} from "lucide-react";
+import Link from "next/link";
 
 const Features = () => {
     const features = [
@@ -80,9 +81,9 @@ const Features = () => {
                         <p className="text-xl mb-8 opacity-90">
                             Join thousands of businesses already using our platform
                         </p>
-                        <button className="bg-white text-blue-600 px-8 py-4 rounded-full font-semibold hover:shadow-lg transition-all transform hover:scale-105">
-                            Start Your Free Trial
-                        </button>
+                        <Link href="/dashboard/create-campaign" className="bg-white text-blue-600 px-8 py-4 rounded-full font-semibold hover:shadow-lg transition-all transform hover:scale-105">
+                            Start Your Campaign
+                        </Link>
                     </div>
                 </div>
             </div>
