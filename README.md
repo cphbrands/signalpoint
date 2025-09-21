@@ -5,3 +5,4 @@ before build
 - footer style changed
 - social media links
 - admin email
+- clear firebase

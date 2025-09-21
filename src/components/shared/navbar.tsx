@@ -27,7 +27,7 @@ export const Navbar = () => {
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-purple-600">
                             <MessageCircle className="h-6 w-6 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-black">BulkSMS Pro</span>
+                        <span className="text-xl font-bold text-black">BulkSMS</span>
                     </div>
 
                     {/* Desktop Navigation */}

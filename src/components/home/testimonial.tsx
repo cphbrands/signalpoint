@@ -8,7 +8,7 @@ const Testimonials = () => {
             company: "TechFlow Inc",
             image: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150",
             content:
-                "BulkSMS Pro has transformed our customer communication. The delivery rates are exceptional, and the analytics help us optimize every campaign.",
+                "BulkSMS  has transformed our customer communication. The delivery rates are exceptional, and the analytics help us optimize every campaign.",
             rating: 5,
         },
         {
@@ -17,7 +17,7 @@ const Testimonials = () => {
             company: "ShopSmart",
             image: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150",
             content:
-                "We've seen a 40% increase in customer engagement since switching to BulkSMS Pro. The two-way messaging feature is a game-changer.",
+                "We've seen a 40% increase in customer engagement since switching to BulkSMS. The two-way messaging feature is a game-changer.",
             rating: 5,
         },
         {

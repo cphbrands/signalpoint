@@ -49,7 +49,7 @@ const Footer = () => {
                     <div className="lg:col-span-2">
                         <div className="flex items-center space-x-2 mb-6">
                             <MessageSquare className="w-8 h-8 text-blue-400" />
-                            <span className="text-2xl font-bold">BulkSMS Pro</span>
+                            <span className="text-2xl font-bold">BulkSMS</span>
                         </div>
                         <p className="text-gray-400 mb-6 max-w-md">
                             The world&apos;s most reliable bulk SMS platform. Send millions of messages instantly with
@@ -160,7 +160,7 @@ const Footer = () => {
 
                 {/* Bottom Footer */}
                 <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-                    <div className="text-gray-400 text-sm mb-4 md:mb-0">© 2025 BulkSMS Pro. All rights reserved.</div>
+                    <div className="text-gray-400 text-sm mb-4 md:mb-0">© 2025 BulkSMS. All rights reserved.</div>
                     <div className="flex items-center space-x-6 text-sm text-gray-400">
                         <div className="flex items-center space-x-2">
                             <div className="w-2 h-2 bg-green-400 rounded-full"></div>
