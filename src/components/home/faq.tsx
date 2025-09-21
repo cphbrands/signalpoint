@@ -1,4 +1,5 @@
 "use client"
+import { CONTACT_EMAIL } from "@/constants/web";
 import {Minus, Plus} from "lucide-react";
 import {useState} from "react";
 
@@ -18,10 +19,7 @@ const FAQ = () => {
             question: "Can I send messages internationally?",
             answer: "Yes! We support messaging to 195+ countries through our extensive carrier network. International rates vary by destination and are clearly displayed in our pricing calculator.",
         },
-        {
-            question: "Do you provide API access?",
-            answer: "Absolutely. We offer comprehensive RESTful APIs with detailed documentation, SDKs for popular languages, and webhook support for real-time updates.",
-        },
+     
         {
             question: "Is there a minimum contract period?",
             answer: "No, all our plans are month-to-month with no long-term contracts. You can upgrade, downgrade, or cancel at any time with no penalties.",
@@ -82,9 +80,9 @@ const FAQ = () => {
                         <h3 className="text-xl font-bold text-gray-900 mb-4">Still have questions?</h3>
                         <p className="text-gray-600 mb-6">Our support team is here to help you 24/7</p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <button className="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-blue-700 transition-colors">
+                            <a href={`mailto:${CONTACT_EMAIL}`} className="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-blue-700 transition-colors">
                                 Contact Support
-                            </button>
+                            </a>
                        
                         </div>
                     </div>

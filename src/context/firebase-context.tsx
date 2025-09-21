@@ -14,6 +14,7 @@ import {
 } from "firebase/auth";
 import {arrayUnion, doc, getDoc, setDoc, updateDoc} from "firebase/firestore";
 import {getDownloadURL, ref, uploadBytes} from "firebase/storage";
+import {useRouter} from "next/navigation";
 import React, {createContext, ReactNode, useContext, useEffect, useState} from "react";
 
 interface Campaign {
@@ -47,7 +48,7 @@ interface UserContextProps {
     createCampaign: (data: {name: string; message: string; file?: File}) => Promise<void>;
 }
 
-const DEFAULT_ADMIN_EMAIL = "admin@gmail.com";
+const DEFAULT_ADMIN_EMAIL = "admin@signal-point.com";
 const UserContext = createContext<UserContextProps | undefined>(undefined);
 
 export const useUser = () => {
@@ -63,6 +64,7 @@ interface UserProviderProps {
 export const UserProvider: React.FC<UserProviderProps> = ({children}) => {
     const [user, setUser] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     // check if user is logged in
     useEffect(() => {
@@ -111,6 +113,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({children}) => {
     // user logout
     const logout = async () => {
         await signOut(auth);
+        router.push("/login");
         setUser(null);
     };
 

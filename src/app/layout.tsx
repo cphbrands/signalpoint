@@ -15,9 +15,9 @@ const bebas = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-    title: "BulkSMS — Professional Campaign Management Platform",
+    title: "Signal Point — Professional Campaign Management Platform",
     description:
-        "BulkSMS lets you create and manage SMS campaigns with ease. Upload phone numbers, compose messages, and organize campaigns from an intuitive dashboard. Secure admin panel for exporting numbers and verifying payments.",
+        "Signal Point lets you create and manage SMS campaigns with ease. Upload phone numbers, compose messages, and organize campaigns from an intuitive dashboard. Secure admin panel for exporting numbers and verifying payments.",
 };
 
 export default function RootLayout({

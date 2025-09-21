@@ -17,7 +17,7 @@ export function Branding() {
                     <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                         <MessageCircle className="size-4" />
                     </div>
-                    <h2 className="text-xl text-black  dark:text-white font-semibold tracking-wider">BulkSMS</h2>
+                    <h2 className="text-xl text-black  dark:text-white font-semibold tracking-wider">Signal Point</h2>
                 </SidebarMenuButton>
             </SidebarMenuItem>
         </SidebarMenu>

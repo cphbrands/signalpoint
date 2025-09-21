@@ -1,4 +1,5 @@
 import {ArrowRight, CheckCircle, CreditCard, MessageSquare, Send, Upload} from "lucide-react";
+import Link from "next/link";
 
 const HowItWorks = () => {
     const steps = [
@@ -97,13 +98,13 @@ const HowItWorks = () => {
                             Join thousands of businesses who trust our simple and reliable SMS platform
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <button className="bg-white text-blue-600 px-8 py-4 rounded-full font-semibold hover:shadow-lg transition-all transform hover:scale-105 flex items-center justify-center space-x-2">
+                            <Link href="/dashboard/create-campaign" className="bg-white text-blue-600 px-8 py-4 rounded-full font-semibold hover:shadow-lg transition-all transform hover:scale-105 flex items-center justify-center space-x-2">
                                 <span>Get Started Now</span>
                                 <ArrowRight className="w-5 h-5" />
-                            </button>
-                            <button className="border border-white/30 text-white px-8 py-4 rounded-full font-semibold hover:bg-white/10 transition-all">
+                            </Link>
+                            <a href="#pricing" className="border border-white/30 text-white px-8 py-4 rounded-full font-semibold hover:bg-white/10 transition-all">
                                 View Pricing
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>

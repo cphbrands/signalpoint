@@ -1,5 +1,6 @@
 import React from "react";
 import {MessageSquare, Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin} from "lucide-react";
+import { CONTACT_EMAIL } from "@/constants/web";
 
 const Footer = () => {
     const footerLinks = {
@@ -49,7 +50,7 @@ const Footer = () => {
                     <div className="lg:col-span-2">
                         <div className="flex items-center space-x-2 mb-6">
                             <MessageSquare className="w-8 h-8 text-blue-400" />
-                            <span className="text-2xl font-bold">BulkSMS</span>
+                            <span className="text-2xl font-bold">Signal Point</span>
                         </div>
                         <p className="text-gray-400 mb-6 max-w-md">
                             The world&apos;s most reliable bulk SMS platform. Send millions of messages instantly with
@@ -60,7 +61,7 @@ const Footer = () => {
                         <div className="space-y-3 mb-6">
                             <div className="flex items-center space-x-3 text-gray-400">
                                 <Mail className="w-5 h-5" />
-                                <span>hello@bulksmspro.com</span>
+                                <span>{CONTACT_EMAIL}</span>
                             </div>
                             <div className="flex items-center space-x-3 text-gray-400">
                                 <Phone className="w-5 h-5" />
@@ -157,10 +158,9 @@ const Footer = () => {
                     </div>
                 </div>
 
-
                 {/* Bottom Footer */}
                 <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-                    <div className="text-gray-400 text-sm mb-4 md:mb-0">© 2025 BulkSMS. All rights reserved.</div>
+                    <div className="text-gray-400 text-sm mb-4 md:mb-0">© 2025 Signal Point. All rights reserved.</div>
                     <div className="flex items-center space-x-6 text-sm text-gray-400">
                         <div className="flex items-center space-x-2">
                             <div className="w-2 h-2 bg-green-400 rounded-full"></div>

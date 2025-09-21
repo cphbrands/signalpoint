@@ -1,3 +1,5 @@
+"use client";
+
 import {DashboardSidebar} from "@/components/dashboard/layout/user-dashboard-sidebar";
 import {Button} from "@/components/ui/button";
 import {Separator} from "@/components/ui/separator";
@@ -9,6 +11,7 @@ import {ReactNode} from "react";
 
 export default function UserDashboardLayout({children}: {children: ReactNode}) {
     const credits = useCurrentCredits();
+
     return (
         <PrivateRoute>
             <SidebarProvider>

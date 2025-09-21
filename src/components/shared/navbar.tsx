@@ -1,6 +1,5 @@
 "use client";
 
-import {Button} from "@/components/ui/button";
 import {useUser} from "@/context/firebase-context";
 import {Menu, MessageCircle, X} from "lucide-react";
 import Link from "next/link";
@@ -27,7 +26,7 @@ export const Navbar = () => {
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-purple-600">
                             <MessageCircle className="h-6 w-6 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-black">BulkSMS</span>
+                        <span className="text-xl font-bold text-black">Signal Point</span>
                     </div>
 
                     {/* Desktop Navigation */}
@@ -84,12 +83,23 @@ export const Navbar = () => {
                             </a>
                         ))}
                         <div className="pt-4 space-y-2">
-                            <Button variant="ghost" className="w-full">
-                                Sign In
-                            </Button>
-                            <Button variant="outline" className="w-full">
-                                <Link href={"/dashboard/"}>Dashboard</Link>
-                            </Button>
+                            {!user && (
+                                <button className=" border w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white h-9 font-medium px-5 rounded-md">
+                                    <Link href="/login">Sign In</Link>
+                                </button>
+                            )}
+
+                            {user && user.role === "user" && (
+                                <button className=" border w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white h-9 font-medium px-5 rounded-md">
+                                    <Link href="/dashboard">Dashboard</Link>
+                                </button>
+                            )}
+
+                            {user && user.role === "admin" && (
+                                <button className=" border w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white h-9 font-medium px-5 rounded-md">
+                                    <Link href="/admin">Admin</Link>
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}

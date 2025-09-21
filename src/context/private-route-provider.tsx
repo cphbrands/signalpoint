@@ -16,13 +16,13 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({children, adminOnly = false}
 
     useEffect(() => {
         if (!loading) {
-            if (!user) router.replace("/login"); 
-            else if (adminOnly && user.role !== "admin") router.replace("/dashboard"); 
-            else if (!adminOnly && user.role === "admin") router.replace("/admin"); 
+            if (!user) router.replace("/login");
+            else if (adminOnly && user.role !== "admin") router.replace("/dashboard");
+            else if (!adminOnly && user.role === "admin") router.replace("/admin");
         }
     }, [user, loading, adminOnly, router]);
 
-    if (loading || !user || (adminOnly && user.role !== "admin") || (!adminOnly && user?.role === "admin")) {
+    if (loading) {
         return <Loader />;
     }
 

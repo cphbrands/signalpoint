@@ -1,5 +1,6 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardContent, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
+import { CONTACT_EMAIL } from "@/constants/web";
 
 interface OrderSummaryProps {
     selectedPackage: {
@@ -53,8 +54,8 @@ export default function OrderSummary({selectedPackage}: OrderSummaryProps) {
                 <p className="text-sm text-muted-foreground mb-4">
                     For custom packages or bulk discounts, contact our sales team.
                 </p>
-                <Button variant="outline" className="w-full">
-                    Contact Sales
+                <Button variant="outline" className="w-full" asChild>
+                    <a href={`mailto:${CONTACT_EMAIL}`}>Contact Sales</a>
                 </Button>
             </div>
         </div>

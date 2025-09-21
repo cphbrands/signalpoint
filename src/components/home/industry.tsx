@@ -1,5 +1,6 @@
 import React from "react";
 import {ShoppingBag, Heart, GraduationCap, Building, Truck, Utensils} from "lucide-react";
+import { CONTACT_EMAIL } from "@/constants/web";
 
 const Industries = () => {
     const industries = [
@@ -96,9 +97,9 @@ const Industries = () => {
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         
-                            <button className="border border-white/30 text-white px-8 py-4 rounded-full font-semibold hover:bg-white/10 transition-all">
+                            <a href={`mailto:${CONTACT_EMAIL}`} className="border border-white/30 text-white px-8 py-4 rounded-full font-semibold hover:bg-white/10 transition-all">
                                 Contact Sales
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>
