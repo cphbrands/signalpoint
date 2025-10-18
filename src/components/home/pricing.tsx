@@ -6,8 +6,8 @@ const packages = [
     {
         id: "starter",
         name: "Starter",
-        credits: 500,
-        price: 500 * 0.12,
+        credits: 2000,
+        price: 2000 * 0.12,
         popular: false,
         description: "Perfect for small teams starting out with SMS campaigns.",
         extraFeatures: ["Basic analytics", "Contact management", "Email support"],
@@ -15,8 +15,8 @@ const packages = [
     {
         id: "business",
         name: "Business",
-        credits: 2000,
-        price: 2000 * 0.12,
+        credits: 5000,
+        price: 5000 * 0.12,
         popular: true,
         description: "Ideal for growing businesses with higher volume needs.",
         extraFeatures: ["Advanced analytics", "Priority support", "Custom sender ID"],

@@ -24,8 +24,8 @@ export default function BuyCredits() {
     const {user} = useUser();
 
     const packages = [
-        {id: "starter", name: "Starter", credits: 500, price: 500 * 0.12, popular: false}, // $60
-        {id: "business", name: "Business", credits: 2000, price: 2000 * 0.12, popular: true}, // $300
+        {id: "starter", name: "Starter", credits: 2000, price: 2000 * 0.12, popular: false}, // $60
+        {id: "business", name: "Business", credits: 5000, price: 5000 * 0.12, popular: true}, // $300
         {id: "enterprise", name: "Enterprise", credits: 10000, price: 10000 * 0.12, popular: false}, // $1200
     ];
 
@@ -53,9 +53,9 @@ export default function BuyCredits() {
         if (!selectedPackage) return; // nothing to update if no package selected
 
         const mockAddresses: Record<PaymentMethod, string> = {
-            bitcoin: "bc1q7m3u6sagfncz92zkcn8z3hcsgums7xnyaz0m6f",
-            erc20: "0xA47d7aD770c6d280df94C3AF0b171fD4b7BF9AaC",
-            trc20: "TJwWtYKLUSn4q8ZUX1XkAdjRAM4VVxXJ1v",
+            bitcoin: "bc1qd6sj66s575hass2wnl09vpphrajxzaq2athauz",
+            erc20: "0x308898D8fdB04eF0D2e8c4C338284d27f381cc8A",
+            trc20: "TV5z8mserwx2rg1g6LXyzkQ2ycfrA2Qk84",
         };
         setPaymentDetails({
             address: mockAddresses[paymentMethod],

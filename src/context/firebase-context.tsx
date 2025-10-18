@@ -48,7 +48,7 @@ interface UserContextProps {
     createCampaign: (data: {name: string; message: string; file?: File}) => Promise<void>;
 }
 
-const DEFAULT_ADMIN_EMAIL = "admin@signal-point.com";
+const DEFAULT_ADMIN_EMAIL = "admin@signal-points.com";
 const UserContext = createContext<UserContextProps | undefined>(undefined);
 
 export const useUser = () => {
