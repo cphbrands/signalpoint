@@ -1,5 +1,7 @@
 "use client";
 
+
+import * as XLSX from "xlsx";
 import UserDashboardLayout from "@/components/dashboard/layout/user-dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +17,74 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 export default function CreateCampaign() {
-    const cleanSenderId = (v: string) => (v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11);
+    
+    function normalizePhoneCandidate(v: any): string | null {
+        const digits = String(v ?? "").replace(/[^\d]/g, "");
+        if (!digits) return null;
+        return digits;
+    }
+
+    function isValidPhone(digits: string): boolean {
+        // DK is often 8 digits (or 45+8). Keep it a bit flexible:
+        return digits.length >= 8 && digits.length <= 15;
+    }
+
+    async function analyzeContactsFile(file: File) {
+        const name = (file.name || "").toLowerCase();
+        const buf = await file.arrayBuffer();
+
+        let candidates: string[] = [];
+
+        if (name.endsWith(".csv")) {
+            const text = new TextDecoder().decode(buf);
+            const parts = text.split(/[\s,;\t\r\n]+/g).filter(Boolean);
+            for (const part of parts) {
+                const d = normalizePhoneCandidate(part);
+                if (d) candidates.push(d);
+            }
+        } else if (name.endsWith(".xls") || name.endsWith(".xlsx")) {
+            const wb = XLSX.read(buf, { type: "array" });
+            for (const sheetName of wb.SheetNames) {
+                const ws = wb.Sheets[sheetName];
+                if (!ws) continue;
+                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
+                for (const row of rows as any[]) {
+                    for (const cell of (row || [])) {
+                        const d = normalizePhoneCandidate(cell);
+                        if (d) candidates.push(d);
+                    }
+                }
+            }
+        } else {
+            // fallback: try to scan as text
+            const text = new TextDecoder().decode(buf);
+            const parts = text.split(/[\s,;\t\r\n]+/g).filter(Boolean);
+            for (const part of parts) {
+                const d = normalizePhoneCandidate(part);
+                if (d) candidates.push(d);
+            }
+        }
+
+        const charged = candidates.length;
+
+        // valid candidates
+        const valid = candidates.filter(isValidPhone);
+        const invalid = charged - valid.length;
+
+        // duplicates counted among valid according to normalized digits
+        const seen = new Set<string>();
+        let duplicates = 0;
+        const uniqueValid: string[] = [];
+        for (const d of valid) {
+            if (seen.has(d)) { duplicates++; continue; }
+            seen.add(d);
+            uniqueValid.push(d);
+        }
+
+        const sendable = uniqueValid.length;
+        return { charged, sendable, invalid, duplicates };
+    }
+const cleanSenderId = (v: string) => (v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11);
 
   const { user } = useUser();
   const userCurrentCredits = useCurrentCredits();
@@ -23,7 +92,9 @@ export default function CreateCampaign() {
   const [campaignName, setCampaignName] = useState("");
   const [message, setMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [sendType, setSendType] = useState<"now" | "later">("now");
+  
+    const [fileStats, setFileStats] = useState<{ charged:number; sendable:number; invalid:number; duplicates:number; } | null>(null);
+const [sendType, setSendType] = useState<"now" | "later">("now");
   const [scheduledDate, setScheduledDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -187,7 +258,20 @@ if (!token) {
             <Input
               type="file"
               accept=".csv,.xls,.xlsx"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              onChange={async (e) => {
+  const f = e.target.files?.[0] || null;
+  setFile(f);
+  if (!f) { setFileStats(null); setContactCount(0); return; }
+  try {
+    const stats = await analyzeContactsFile(f);
+    setFileStats(stats);
+    // IMPORTANT: charge credits on "charged" (includes duplicates/invalid)
+    setContactCount(stats.charged);
+  } catch (err) {
+    console.error(err);
+    setFileStats(null);
+  }
+}}
             />
             <div className="text-sm text-gray-500 mt-1">
               <strong>Instructions:</strong>
