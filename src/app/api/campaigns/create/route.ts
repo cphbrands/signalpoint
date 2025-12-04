@@ -11,9 +11,16 @@ function normalizePhone(raw: string) {
   return digits;
 }
 
+// ✅ Robust: line-by-line parsing (works for simple CSV like: 4511111111 per line)
 function extractPhonesFromText(text: string) {
-  const matches = text.match(/\+?\d[\d\s().-]{6,}\d/g) || [];
-  const nums = matches.map(normalizePhone).filter(Boolean) as string[];
+  const lines = (text || "").split(/\r?\n/);
+  const nums: string[] = [];
+
+  for (const line of lines) {
+    const n = normalizePhone(line);
+    if (n) nums.push(n);
+  }
+
   return Array.from(new Set(nums));
 }
 
@@ -72,12 +79,26 @@ export async function POST(req: NextRequest) {
   if (!fileURL) return NextResponse.json({ error: "FILE_URL_REQUIRED" }, { status: 400 });
 
   const r = await fetch(fileURL);
-  if (!r.ok) return NextResponse.json({ error: "FILE_DOWNLOAD_FAILED" }, { status: 400 });
+  if (!r.ok) {
+    const preview = await r.text().catch(() => "");
+    console.error("FILE_DOWNLOAD_FAILED", r.status, preview.slice(0, 300));
+    return NextResponse.json({ error: "FILE_DOWNLOAD_FAILED", status: r.status }, { status: 400 });
+  }
+
+  const contentType = r.headers.get("content-type") || "";
   const buf = Buffer.from(await r.arrayBuffer());
 
   const recipients = parseRecipients(buf, fileName);
-  if (recipients.length === 0) return NextResponse.json({ error: "NO_VALID_NUMBERS" }, { status: 400 });
-  if (recipients.length > 50000) return NextResponse.json({ error: "TOO_MANY_RECIPIENTS" }, { status: 400 });
+
+  if (recipients.length === 0) {
+    const preview = buf.toString("utf8").slice(0, 300);
+    console.error("NO_VALID_NUMBERS", { contentType, preview });
+    return NextResponse.json({ error: "NO_VALID_NUMBERS", contentType, preview }, { status: 400 });
+  }
+
+  if (recipients.length > 50000) {
+    return NextResponse.json({ error: "TOO_MANY_RECIPIENTS" }, { status: 400 });
+  }
 
   const segments = smsSegments(message);
   const requiredCredits = recipients.length * segments;
@@ -122,6 +143,7 @@ export async function POST(req: NextRequest) {
         requiredCredits,
         delivered: 0,
         failed: 0,
+        skipped: 0,
         status: sendType === "now" ? "queued" : "scheduled",
         scheduledAt: sendType === "now" ? "instant" : scheduledAtISO,
         createdAt: FieldValue.serverTimestamp(),
