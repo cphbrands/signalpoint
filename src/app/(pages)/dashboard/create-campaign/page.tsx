@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useUser } from "@/context/firebase-context";
-import { storage } from "@/firebase";
+import { auth, storage } from "@/firebase";
 import useCurrentCredits from "@/hooks/use-current-credit";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { Info, Loader2 } from "lucide-react";
@@ -78,7 +78,11 @@ export default function CreateCampaign() {
       const fileURL = await getDownloadURL(fileRef);
 
       // Call server: parses file + calculates credits + deducts credits + creates campaign
-      const token = await user!.getIdToken();
+      const token = await auth.currentUser?.getIdToken();
+if (!token) {
+  setError("Not logged in (no token). Please login again.");
+  return;
+}
 
       const res = await fetch("/api/campaigns/create", {
         method: "POST",
@@ -151,10 +155,10 @@ export default function CreateCampaign() {
           {error && <p className="text-red-600 font-medium bg-red-50 p-2 rounded">⚠ {error}</p>}
 
           <div>
-            <Label className="mb-2">Campaign Name</Label>
+            <Label className="mb-2">Sender ID</Label>
             <Input
               type="text"
-              placeholder="Enter campaign name"
+              placeholder="Enter sender id (e.g. SIGNAL)"
               value={campaignName}
               onChange={(e) => setCampaignName(e.target.value)}
             />

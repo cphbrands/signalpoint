@@ -71,11 +71,12 @@ export async function POST(req: NextRequest) {
   const message = String(body.message || "").trim();
   const fileURL = String(body.fileURL || "").trim();
   const fileName = String(body.fileName || "contacts.csv").trim();
-  const campaignName = String(body.name || "").trim().slice(0, 80);
+  const senderId = String(body.name || "").trim().slice(0, 11);
   const sendType = body.sendType === "later" ? "later" : "now";
   const scheduledAt = body.scheduledAt ? String(body.scheduledAt) : null;
 
   if (!message) return NextResponse.json({ error: "MESSAGE_REQUIRED" }, { status: 400 });
+  if (!senderId) return NextResponse.json({ error: "SENDER_REQUIRED" }, { status: 400 });
   if (!fileURL) return NextResponse.json({ error: "FILE_URL_REQUIRED" }, { status: 400 });
 
   const r = await fetch(fileURL);
@@ -135,7 +136,8 @@ export async function POST(req: NextRequest) {
 
       tx.set(campaignRef, {
         userId: uid,
-        name: campaignName || null,
+        senderId,
+        name: null,
         message,
         fileURL,
         contactCount: recipients.length,
