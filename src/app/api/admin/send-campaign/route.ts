@@ -117,9 +117,11 @@ export async function POST(req: NextRequest) {
     let delivered = 0;
     let failed = 0;
 
-    for (const to of recipients) {
+    const results: any[] = [];
+for (const to of recipients) {
       const r = await sendSmsBeenet(to, message, senderId);
-      if (r.ok) delivered++;
+      results.push({ to, ok: r.ok, code: r.code, messageId: r.messageId, raw: r.raw?.slice?.(0,120) || r.raw });
+if (r.ok) delivered++;
       else failed++;
 
       // lightweight progress update every 10 sends
