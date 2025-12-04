@@ -24,7 +24,6 @@ function parseRecipients(buffer: Buffer, fileName: string) {
     return extractPhonesFromText(buffer.toString("utf8"));
   }
 
-  // xls/xlsx
   const wb = XLSX.read(buffer, { type: "buffer" });
   const out: string[] = [];
   for (const sheetName of wb.SheetNames) {
@@ -72,7 +71,6 @@ export async function POST(req: NextRequest) {
   if (!message) return NextResponse.json({ error: "MESSAGE_REQUIRED" }, { status: 400 });
   if (!fileURL) return NextResponse.json({ error: "FILE_URL_REQUIRED" }, { status: 400 });
 
-  // download + parse recipients
   const r = await fetch(fileURL);
   if (!r.ok) return NextResponse.json({ error: "FILE_DOWNLOAD_FAILED" }, { status: 400 });
   const buf = Buffer.from(await r.arrayBuffer());
@@ -108,7 +106,11 @@ export async function POST(req: NextRequest) {
         throw err;
       }
 
-      tx.set(userRef, { currentCredit: credits - requiredCredits, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      tx.set(
+        userRef,
+        { currentCredit: credits - requiredCredits, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true }
+      );
 
       tx.set(campaignRef, {
         userId: uid,
