@@ -51,8 +51,8 @@ export async function sendSmsBeenet(to: string | string[], message: string, send
 
 
   // Your provider returns SUBMIT_SUCCESS|<id> on success (based on your earlier logs)
-  const ok = res.ok && raw.includes("SUBMIT_SUCCESS");
-  const messageId = ok ? (raw.split("|")[1] || "").trim() : null;
+  const ok = res.ok && (/^\s*SUCCESS\b/i.test(raw) || raw.includes("SUBMIT_SUCCESS"));
+  const messageId = ok ? (raw.split("|const messageId = ok ? (raw.split("|")[1] || "").trim() : null;
   const code = ok ? "SUBMIT_SUCCESS" : ((raw || "").trim().split("|")[0] || `HTTP_${res.status}`);
 
   return { ok, code, messageId, raw };
