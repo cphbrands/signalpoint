@@ -44,6 +44,11 @@ export async function sendSmsBeenet(to: string, message: string, senderId: strin
 
   const res = await fetch(url.toString(), { method: "GET" });
   const raw = await res.text();
+  // DEBUG (server-side): log gateway response without exposing credentials
+  const maskedTo = String(cleanTo).replace(/\d(?=\d{4})/g, "*");
+  const preview = raw.length > 300 ? raw.slice(0, 300) + "...(truncated)" : raw;
+  console.log("[BEENET]", { http: res.status, ok: res.ok, to: maskedTo, sender: sender, codeHint: preview.split("|")[0], raw: preview });
+
 
   // Your provider returns SUBMIT_SUCCESS|<id> on success (based on your earlier logs)
   const ok = res.ok && raw.includes("SUBMIT_SUCCESS");
