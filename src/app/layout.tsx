@@ -2,7 +2,7 @@ import { UserProvider } from "@/context/firebase-context";
 import { ThemeProvider } from "@/context/theme-provider";
 import type { Metadata } from "next";
 import { Bebas_Neue, DM_Sans } from "next/font/google";
-import TelegramFloat from "@/components/TelegramFloat"; // ⬅️ tilføjet import
+import TelegramFloat from "@/components/TelegramFloat"; // ⬅️ added import
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -33,7 +33,7 @@ export default function RootLayout({
           <UserProvider>{children}</UserProvider>
         </ThemeProvider>
 
-        {/* ⬇️ Flydende Telegram-knap vises på alle sider */}
+        {/* ⬇️ Floating Telegram button shows on all pages */}
         <TelegramFloat />
       </body>
     </html>

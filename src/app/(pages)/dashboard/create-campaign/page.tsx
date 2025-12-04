@@ -165,7 +165,7 @@ if (!token) {
               onChange={(e) => setCampaignName(cleanSenderId(e.target.value))}
             />
                         <p className="text-xs text-muted-foreground mt-1">
-                            Max 11 tegn (A–Z/0–9). {campaignName.length}/11 — {11 - campaignName.length} tilbage{campaignName ? ` • Sendes som: ${campaignName}` : ""}
+                            Max 11 characters (A–Z/0–9). {campaignName.length}/11 — {11 - campaignName.length} remaining{campaignName ? ` • Will send as: ${campaignName}` : ""}
                         </p>
           </div>
 

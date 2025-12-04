@@ -9,9 +9,9 @@ export default function TelegramFloat() {
         rel="noopener noreferrer"
         aria-label="Open Telegram support chat"
         className="relative block"
-        title="Chat på Telegram"
+        title="Chat on Telegram"
       >
-        {/* Ping-ring (klikbarheden blokeres ikke) */}
+        {/* Ping ring (does not block clickability) */}
         <span className="pointer-events-none absolute inset-0 rounded-full bg-blue-400/40 animate-ping"></span>
 
         {/* Selve knappen */}

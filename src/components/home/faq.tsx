@@ -100,7 +100,7 @@ const FAQ = () => {
 
             {/* ACTION BUTTONS */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {/* Telegram - Primær */}
+              {/* Telegram - Primary */}
               <a
                 href="https://t.me/signalpoint007"
                 target="_blank"
@@ -121,7 +121,7 @@ const FAQ = () => {
                 Telegram Support
               </a>
 
-              {/* Email - Sekundær */}
+              {/* Email - Secondary */}
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
                 aria-label="Contact via Email"
