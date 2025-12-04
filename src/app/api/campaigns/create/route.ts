@@ -2,44 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
 import * as XLSX from "xlsx";
+import { parseCampaignCsv } from "@/lib/campaignCsv";
 
 export const runtime = "nodejs";
-
-function normalizePhone(raw: string) {
-  const digits = (raw || "").replace(/\D/g, "");
-  if (digits.length < 8 || digits.length > 15) return null;
-  return digits;
-}
-
-// ✅ Robust: line-by-line parsing (works for simple CSV like: 4511111111 per line)
-function extractPhonesFromText(text: string) {
-  const lines = (text || "").split(/\r?\n/);
-  const nums: string[] = [];
-
-  for (const line of lines) {
-    const n = normalizePhone(line);
-    if (n) nums.push(n);
-  }
-
-  return Array.from(new Set(nums));
-}
-
-function parseRecipients(buffer: Buffer, fileName: string) {
-  const lower = (fileName || "").toLowerCase();
-
-  if (lower.endsWith(".csv")) {
-    return extractPhonesFromText(buffer.toString("utf8"));
-  }
-
-  const wb = XLSX.read(buffer, { type: "buffer" });
-  const out: string[] = [];
-  for (const sheetName of wb.SheetNames) {
-    const ws = wb.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true }) as any[][];
-    for (const r of rows) for (const cell of r) if (cell != null) out.push(String(cell));
-  }
-  return extractPhonesFromText(out.join("\n"));
-}
 
 function smsSegments(message: string) {
   const hasUnicode = /[^\x00-\x7F]/.test(message);
@@ -63,6 +28,29 @@ async function getUid(req: NextRequest) {
   }
 }
 
+function fileToText(buf: Buffer, fileName: string) {
+  const lower = (fileName || "").toLowerCase();
+
+  if (lower.endsWith(".csv")) {
+    return buf.toString("utf8");
+  }
+
+  // XLS/XLSX: extract all cells to text, then parse with parseCampaignCsv()
+  if (lower.endsWith(".xls") || lower.endsWith(".xlsx")) {
+    const wb = XLSX.read(buf, { type: "buffer" });
+    const out: string[] = [];
+    for (const sheetName of wb.SheetNames) {
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true }) as any[][];
+      for (const r of rows) for (const cell of r) if (cell != null) out.push(String(cell));
+    }
+    return out.join("\n");
+  }
+
+  // Fallback
+  return buf.toString("utf8");
+}
+
 export async function POST(req: NextRequest) {
   const uid = await getUid(req);
   if (!uid) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
@@ -71,7 +59,11 @@ export async function POST(req: NextRequest) {
   const message = String(body.message || "").trim();
   const fileURL = String(body.fileURL || "").trim();
   const fileName = String(body.fileName || "contacts.csv").trim();
-  const senderId = String(body.name || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11);
+  const senderId = String(body.name || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 11);
+
   const sendType = body.sendType === "later" ? "later" : "now";
   const scheduledAt = body.scheduledAt ? String(body.scheduledAt) : null;
 
@@ -86,23 +78,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "FILE_DOWNLOAD_FAILED", status: r.status }, { status: 400 });
   }
 
-  const contentType = r.headers.get("content-type") || "";
   const buf = Buffer.from(await r.arrayBuffer());
+  const text = fileToText(buf, fileName);
 
-  const recipients = parseRecipients(buf, fileName);
+  // ✅ IMPORTANT CHANGE:
+  // parseCampaignCsv() returns:
+  // - totalParsed   (includes invalid + duplicates)  => CHARGED
+  // - sendable      (unique valid)                   => SENT
+  const parsed = parseCampaignCsv(text);
 
-  if (recipients.length === 0) {
-    const preview = buf.toString("utf8").slice(0, 300);
-    console.error("NO_VALID_NUMBERS", { contentType, preview });
-    return NextResponse.json({ error: "NO_VALID_NUMBERS", contentType, preview }, { status: 400 });
+  if (parsed.sendable.length === 0) {
+    const preview = text.slice(0, 300);
+    console.error("NO_SENDABLE_NUMBERS", { preview });
+    return NextResponse.json(
+      { error: "NO_SENDABLE_NUMBERS", preview },
+      { status: 400 }
+    );
   }
 
-  if (recipients.length > 50000) {
-    return NextResponse.json({ error: "TOO_MANY_RECIPIENTS" }, { status: 400 });
+  // Safety caps (adjust as you like)
+  if (parsed.totalParsed > 50000) {
+    return NextResponse.json({ error: "TOO_MANY_CONTACTS_TO_CHARGE" }, { status: 400 });
+  }
+  if (parsed.sendable.length > 50000) {
+    return NextResponse.json({ error: "TOO_MANY_RECIPIENTS_TO_SEND" }, { status: 400 });
   }
 
   const segments = smsSegments(message);
-  const requiredCredits = recipients.length * segments;
+
+  // ✅ Charge ALL parsed tokens (including invalid + duplicates)
+  const chargedContacts = parsed.totalParsed;
+  const requiredCredits = chargedContacts * segments;
 
   let scheduledAtISO: string | null = null;
   if (sendType === "later") {
@@ -140,14 +146,26 @@ export async function POST(req: NextRequest) {
         name: null,
         message,
         fileURL,
-        contactCount: recipients.length,
+
+        // ✅ Store charged vs sendable
+        contactCount: chargedContacts,              // charged contacts
+        sendableCount: parsed.sendable.length,      // unique valid that will actually be sent
+        fileStats: {
+          totalParsed: parsed.totalParsed,
+          sendable: parsed.sendable.length,
+          invalid: parsed.invalid,
+          duplicates: parsed.duplicates,
+        },
+
         segments,
         requiredCredits,
         delivered: 0,
         failed: 0,
         skipped: 0,
+
         status: sendType === "now" ? "queued" : "scheduled",
         scheduledAt: sendType === "now" ? "instant" : scheduledAtISO,
+
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
@@ -156,9 +174,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       campaignId: campaignRef.id,
-      contactCount: recipients.length,
+      chargedContacts,
+      sendableCount: parsed.sendable.length,
       segments,
       requiredCredits,
+      fileStats: {
+        totalParsed: parsed.totalParsed,
+        sendable: parsed.sendable.length,
+        invalid: parsed.invalid,
+        duplicates: parsed.duplicates,
+      },
       status: sendType === "now" ? "queued" : "scheduled",
     });
   } catch (e: any) {
