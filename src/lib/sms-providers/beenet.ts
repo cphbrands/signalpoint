@@ -35,12 +35,12 @@ export async function sendSmsBeenet(to: string | string[], message: string, send
   const sender = cleanSender.slice(0, 11);
 
   const url = new URL(urlBase);
-  url.searchParams.set("Username", Username);
-  url.searchParams.set("Password", Password);
-  url.searchParams.set("Type", "TEXT");
-  url.searchParams.set("Mobile", cleanTo);
-  url.searchParams.set("Sender", sender);
-  url.searchParams.set("Message", cleanMsg);
+  url.searchParams.set("username", Username);
+  url.searchParams.set("password", Password);
+  url.searchParams.set("type", "TEXT");
+  url.searchParams.set("mobile", cleanTo);
+  url.searchParams.set("sender", sender);
+  url.searchParams.set("message", cleanMsg);
 
   const res = await fetch(url.toString(), { method: "GET" });
   const raw = await res.text();
