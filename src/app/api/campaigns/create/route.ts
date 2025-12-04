@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   const message = String(body.message || "").trim();
   const fileURL = String(body.fileURL || "").trim();
   const fileName = String(body.fileName || "contacts.csv").trim();
-  const senderId = String(body.name || "").trim().slice(0, 11);
+  const senderId = String(body.name || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11);
   const sendType = body.sendType === "later" ? "later" : "now";
   const scheduledAt = body.scheduledAt ? String(body.scheduledAt) : null;
 

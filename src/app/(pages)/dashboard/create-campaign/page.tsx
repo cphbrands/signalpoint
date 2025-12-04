@@ -15,6 +15,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 export default function CreateCampaign() {
+    const cleanSenderId = (v: string) => (v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11);
+
   const { user } = useUser();
   const userCurrentCredits = useCurrentCredits();
 
@@ -160,8 +162,11 @@ if (!token) {
               type="text"
               placeholder="Enter sender id (e.g. SIGNAL)"
               value={campaignName}
-              onChange={(e) => setCampaignName(e.target.value)}
+              onChange={(e) => setCampaignName(cleanSenderId(e.target.value))}
             />
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Max 11 tegn (A–Z/0–9). {campaignName.length}/11 — {11 - campaignName.length} tilbage{campaignName ? ` • Sendes som: ${campaignName}` : ""}
+                        </p>
           </div>
 
           <div>
