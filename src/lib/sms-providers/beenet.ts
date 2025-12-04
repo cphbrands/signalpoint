@@ -18,7 +18,7 @@ function mustEnv(name: string) {
  *  - BEENET_USERNAME
  *  - BEENET_PASSWORD
  */
-export async function sendSmsBeenet(to: string, message: string, senderId: string): Promise<BeenetSendResult> {
+export async function sendSmsBeenet(to: string | string[], message: string, senderId: string): Promise<BeenetSendResult> {
   const urlBase = mustEnv("BEENET_SEND_URL");
   const Username = mustEnv("BEENET_USERNAME");
   const Password = mustEnv("BEENET_PASSWORD");
