@@ -64,8 +64,8 @@ export default function Campaigns() {
     const filteredCampaigns = campaigns
         .filter((c) => {
             const matchesSearch =
-                c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                c.message.toLowerCase().includes(searchTerm.toLowerCase());
+                String(c.name ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                String(c.message ?? "").toLowerCase().includes(searchTerm.toLowerCase());
             const matchesStatus = statusFilter === "all" || c.status === statusFilter;
             return matchesSearch && matchesStatus;
         })
