@@ -1,0 +1,284 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
+type HlrResult = {
+  number: string;
+  status: "active" | "inactive" | "unknown" | "error";
+  country?: string;
+  network?: string;
+  mccmnc?: string;
+  ported?: boolean;
+  note?: string;
+};
+
+type HistoryItem = { id: string; createdAt: string; count: number; fileName?: string };
+const HISTORY_KEY = "hlr_history_v1";
+
+function extractNumbers(text: string) {
+  const matches = text.match(/\d{8,}/g) ?? [];
+  const cleaned = matches.map((x) => x.replace(/[^\d]/g, "")).filter(Boolean);
+
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  let dup = 0;
+  for (const n of cleaned) {
+    if (seen.has(n)) dup++;
+    else {
+      seen.add(n);
+      unique.push(n);
+    }
+  }
+  return { totalFound: cleaned.length, uniqueValid: unique.length, duplicates: dup, unique };
+}
+
+async function safeJson(res: Response) {
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) return await res.json();
+  return { error: (await res.text()).slice(0, 300) };
+}
+
+function loadHistory(): HistoryItem[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(items: HistoryItem[]) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 20)));
+}
+
+function toCsv(rows: HlrResult[]) {
+  const header = ["number","status","country","network","mccmnc","ported","note"];
+  const esc = (v: any) => `"${String(v ?? "").replace(/"/g,'""')}"`;
+  return [
+    header.join(","),
+    ...rows.map(r => [
+      esc(r.number), esc(r.status), esc(r.country), esc(r.network), esc(r.mccmnc),
+      esc(r.ported ? "yes" : "no"), esc(r.note),
+    ].join(",")),
+  ].join("\n");
+}
+
+function download(name: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+}
+
+export default function HlrLookup() {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const [busy, setBusy] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [nums, setNums] = useState<string[]>([]);
+  const [stats, setStats] = useState<{ totalFound: number; uniqueValid: number; duplicates: number }>({
+    totalFound: 0,
+    uniqueValid: 0,
+    duplicates: 0,
+  });
+  const [results, setResults] = useState<HlrResult[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => { setHistory(loadHistory()); }, []);
+
+  const counts = useMemo(() => ({
+    active: results.filter(r => r.status === "active").length,
+    inactive: results.filter(r => r.status === "inactive").length,
+    unknown: results.filter(r => r.status === "unknown").length,
+    error: results.filter(r => r.status === "error").length,
+  }), [results]);
+
+  async function onUpload(file: File) {
+    setErr(null);
+    setResults([]);
+    setFileName(file.name);
+
+    const text = await file.text();
+    const s = extractNumbers(text);
+
+    setNums(s.unique);
+    setStats({ totalFound: s.totalFound, uniqueValid: s.uniqueValid, duplicates: s.duplicates });
+
+    if (s.uniqueValid === 0) {
+      setErr("No valid numbers found in the CSV (need at least 8 digits).");
+    }
+  }
+
+  async function run() {
+    setBusy(true); setErr(null); setResults([]);
+    try {
+      if (nums.length === 0) throw new Error("Please upload a CSV first.");
+
+      const res = await fetch("/api/hlr/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ numbers: nums }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok) throw new Error((data as any)?.error ?? "HLR failed");
+
+      const out: HlrResult[] = (data as any)?.results ?? [];
+      setResults(out);
+
+      const item: HistoryItem = {
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        count: nums.length,
+        fileName: fileName ?? undefined,
+      };
+      const next = [item, ...loadHistory()];
+      saveHistory(next);
+      setHistory(next.slice(0, 20));
+    } catch (e: any) {
+      setErr(e?.message ?? "Unknown error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function clearAll() {
+    setFileName(null);
+    setNums([]);
+    setStats({ totalFound: 0, uniqueValid: 0, duplicates: 0 });
+    setResults([]);
+    setErr(null);
+  }
+
+  return (
+    <div className="w-full space-y-6">
+      {/* Hidden-but-clickable input (sr-only is safer than hidden) */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="sr-only"
+        onChange={(e) => {
+          const f = e.currentTarget.files?.[0];
+          if (f) void onUpload(f);
+          e.currentTarget.value = "";
+        }}
+      />
+
+      <Card className="w-full">
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle>Upload CSV</CardTitle>
+            <CardDescription>Upload a CSV file containing phone numbers. Numbers are auto-detected.</CardDescription>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setHistory(loadHistory())}>Refresh History</Button>
+            <Button variant="secondary" onClick={clearAll}>Clear</Button>
+
+            <Button type="button" onClick={() => fileRef.current?.click()}>
+              Choose CSV
+            </Button>
+
+            <Button onClick={run} disabled={busy || nums.length === 0}>
+              {busy ? "Running..." : "Run HLR"}
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">File: {fileName ?? "-"}</Badge>
+            <Badge variant="outline">Numbers found: {stats.totalFound}</Badge>
+            <Badge variant="outline">Unique valid: {stats.uniqueValid}</Badge>
+            <Badge variant="outline">Duplicates: {stats.duplicates}</Badge>
+          </div>
+
+          {err && (
+            <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm">
+              <div className="font-medium">Error</div>
+              <div className="text-muted-foreground">{err}</div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="w-full">
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle>Results</CardTitle>
+            <CardDescription>Mock results (replace with a real provider later).</CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Badge variant="outline">Active: {counts.active}</Badge>
+            <Badge variant="outline">Inactive: {counts.inactive}</Badge>
+            <Badge variant="outline">Unknown: {counts.unknown}</Badge>
+            <Badge variant="outline">Error: {counts.error}</Badge>
+            <Button
+              variant="secondary"
+              onClick={() => download(`hlr-results-${Date.now()}.csv`, toCsv(results), "text/csv;charset=utf-8")}
+              disabled={results.length === 0}
+            >
+              Export CSV
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-2">
+          {results.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No results yet.</div>
+          ) : (
+            results.map((r) => (
+              <div key={r.number} className="flex items-center justify-between rounded-lg border bg-muted/10 p-3">
+                <div className="space-y-1">
+                  <div className="font-medium">{r.number}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {r.country ?? "-"} • {r.network ?? "-"} • {r.mccmnc ?? "-"} {r.ported ? "• ported" : ""}
+                  </div>
+                  {r.note ? <div className="text-xs text-muted-foreground">{r.note}</div> : null}
+                </div>
+                <Badge
+                  variant={
+                    r.status === "active" ? "default" :
+                    r.status === "inactive" ? "destructive" :
+                    r.status === "unknown" ? "outline" : "destructive"
+                  }
+                >
+                  {r.status}
+                </Badge>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Last 20 Lookups</CardTitle>
+          <CardDescription>Stored locally in your browser (localStorage).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {history.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No history yet. Upload a CSV and run HLR.</div>
+          ) : (
+            history.slice(0, 20).map((h) => (
+              <div key={h.id} className="flex items-center justify-between rounded-lg border bg-muted/10 p-3">
+                <div className="text-sm">
+                  <div className="font-medium">{h.fileName ?? "Lookup"}</div>
+                  <div className="text-xs text-muted-foreground">{h.createdAt} • {h.count} numbers</div>
+                </div>
+                <Badge variant="outline">done</Badge>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

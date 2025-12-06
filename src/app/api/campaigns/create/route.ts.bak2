@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
         skipped: 0,
 
         status: sendType === "now" ? "queued" : "scheduled",
-    scheduledAt: sendType === "now" ? "instant" : Timestamp.fromDate(new Date(scheduledAt as string)),
+    scheduledAt: scheduledAtValue,
 
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),

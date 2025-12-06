@@ -48,8 +48,11 @@ const CampaignTable: React.FC<CampaignTableProps> = ({campaigns}) => (
                         <TableCell>{c.createdAt.toDate().toLocaleDateString()}</TableCell>
                         <TableCell>
                             {c.scheduledAt === "instant"
-                                ? "Instant"
-                                : new Date(c.scheduledAt.toString()).toLocaleString()}
+  ? "Instant"
+  : (typeof (c.scheduledAt as any)?.toDate === "function"
+      ? (c.scheduledAt as any).toDate().toLocaleString()
+      : new Date(String(c.scheduledAt)).toLocaleString()
+    )}
                         </TableCell>
                         <TableCell>
                             {c.delivered} {" "} ({((c.delivered * 100) / c.contactCount).toFixed(0)}%){" "}
