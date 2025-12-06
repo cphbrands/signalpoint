@@ -12,27 +12,27 @@ import {SidebarUser} from "./admin-sidebar-user";
 const routes = [
     {
         name: "Overview",
-        url: "/admin",
+        href: "/admin",
         icon: FileText,
     },
     {
         name: "Campaigns",
-        url: "/admin/campaigns",
+        href: "/admin/campaigns",
         icon: MessageCircle,
     },
     {
         name: "Payments",
-        url: "/admin/payments",
+        href: "/admin/payments",
         icon: DollarSign,
     },
     {
         name: "Users",
-        url: "/admin/users",
+        href: "/admin/users",
         icon: Users2,
     },
     {
         name: "Settings",
-        url: "/admin/account",
+        href: "/admin/account",
         icon: Settings,
     },
 ];
