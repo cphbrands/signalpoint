@@ -150,6 +150,13 @@ export async function POST(req: NextRequest) {
         // ✅ Store charged vs sendable
         contactCount: chargedContacts,              // charged contacts
         sendableCount: parsed.sendable.length,      // unique valid that will actually be sent
+        fileStats: {
+          totalParsed: parsed.totalParsed,
+          sendable: parsed.sendable.length,
+          invalid: parsed.invalid,
+          duplicates: parsed.duplicates,
+        },
+
         segments,
         requiredCredits,
         delivered: 0,
@@ -171,6 +178,12 @@ export async function POST(req: NextRequest) {
       sendableCount: parsed.sendable.length,
       segments,
       requiredCredits,
+      fileStats: {
+        totalParsed: parsed.totalParsed,
+        sendable: parsed.sendable.length,
+        invalid: parsed.invalid,
+        duplicates: parsed.duplicates,
+      },
       status: sendType === "now" ? "queued" : "scheduled",
     });
   } catch (e: any) {
