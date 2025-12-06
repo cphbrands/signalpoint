@@ -1,6 +1,6 @@
 "use client";
 
-import {CreditCard, DollarSign, FileText, Grid2X2, MessageCircle, User} from "lucide-react";
+import { CreditCard, DollarSign, FileText, Grid2X2, MessageCircle, User, Search } from "lucide-react";
 import * as React from "react";
 
 import {Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail} from "@/components/ui/sidebar";
@@ -13,32 +13,33 @@ import {SidebarLinks} from "./user-sidebar-links";
 const routes = [
     {
         name: "Overview",
-        url: "/dashboard",
+        href: "/dashboard",
         icon: FileText,
     },
     {
         name: "Create Campaign",
-        url: "/dashboard/create-campaign",
+        href: "/dashboard/create-campaign",
         icon: MessageCircle,
     },
     {
         name: "Campaigns",
-        url: "/dashboard/campaigns",
+        href: "/dashboard/campaigns",
         icon: Grid2X2,
     },
     {
         name: "Buy Credits",
-        url: "/dashboard/buy-credits",
+        href: "/dashboard/buy-credits",
         icon: DollarSign,
     },
     {
         name: "Billings",
-        url: "/dashboard/billings",
+        href: "/dashboard/billings",
         icon: CreditCard,
-    },
+    },        { name: "HLR Lookup", href: "/dashboard/hlr", icon: Search },
+
     {
         name: "Account",
-        url: "/dashboard/account",
+        href: "/dashboard/account",
         icon: User,
     },
 ];

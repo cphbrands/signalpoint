@@ -17,7 +17,7 @@ export function SidebarLinks({
 }: {
     routes: {
         name: string;
-        url: string;
+        href: string;
         icon: LucideIcon;
     }[];
 }) {
@@ -32,12 +32,12 @@ export function SidebarLinks({
                         <SidebarMenuButton
                             asChild
                             className={`font-medium    ${
-                                location === item.url
+                                location === item.href
                                     ? "bg-primary text-white hover:bg-primary hover:text-white font-semibold tracking-wide"
                                     : "text-black dark:hover:text-black dark:text-white"
                             }  `}
                         >
-                            <Link href={item.url}>
+                            <Link href={item.href}>
                                 <item.icon />
                                 <span>{item.name}</span>
                             </Link>
