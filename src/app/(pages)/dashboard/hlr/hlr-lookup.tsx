@@ -206,7 +206,7 @@ export default function HlrLookup() {
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Why run HLR before a campaign?</CardTitle>
-          <CardDescription>Running an HLR check helps you avoid wasted sends and improves campaign performance.</CardDescription>
+          <CardDescription>Running an HLR check helps you avoid wasted sends and improves campaign performance. CSV exports are stored for 7 days and then automatically deleted.</CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="list-disc ml-5 space-y-2 text-sm">
