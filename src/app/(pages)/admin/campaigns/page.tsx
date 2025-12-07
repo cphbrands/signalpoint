@@ -29,15 +29,24 @@ export default function AdminCampaigns() {
 
     const filteredCampaigns = campaigns
         .filter((c) => {
+            // Defensive: some campaign docs may have null/undefined name/message
+            const name = String(c?.name ?? "");
+            const message = String(c?.message ?? "");
             const matchesSearch =
-                c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                c.message.toLowerCase().includes(searchTerm.toLowerCase());
+                name.toLowerCase().includes(String(searchTerm ?? "").toLowerCase()) ||
+                message.toLowerCase().includes(String(searchTerm ?? "").toLowerCase());
             const matchesStatus = statusFilter === "all" || c.status === statusFilter;
             return matchesSearch && matchesStatus;
         })
         .sort((a, b) => {
-            if (sortBy === "date") return b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime();
-            if (sortBy === "name") return a.name.localeCompare(b.name);
+            const getTime = (x: any) => {
+                if (!x) return 0;
+                if (typeof x?.toDate === "function") return x.toDate().getTime();
+                return new Date(String(x)).getTime();
+            };
+
+            if (sortBy === "date") return getTime(b.createdAt) - getTime(a.createdAt);
+            if (sortBy === "name") return String(a?.name ?? "").localeCompare(String(b?.name ?? ""));
             return 0;
         });
 
