@@ -56,6 +56,12 @@ export async function POST(req: NextRequest) {
   if (!uid) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
   const body = await req.json();
+
+  // --- Model B (country-based) number rules ---
+  // Default DK: countryCode "45", national length 8 (so numbers must be 45########)
+  const countryCode = String((body?.countryCode ?? "45")).trim();
+  const nationalNumberLength = Number(body?.nationalNumberLength ?? 8);
+
   const message = String(body.message || "").trim();
   const fileURL = String(body.fileURL || "").trim();
   const fileName = String(body.fileName || "contacts.csv").trim();
