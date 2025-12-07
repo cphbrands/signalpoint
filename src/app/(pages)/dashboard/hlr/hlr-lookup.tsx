@@ -239,9 +239,6 @@ export default function HlrLookup() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => setHistory(loadHistory())}>Refresh History</Button>
-            <Button variant="secondary" onClick={clearAll}>Clear</Button>
-
             <Button type="button" onClick={() => fileRef.current?.click()}>
               Choose CSV
             </Button>
