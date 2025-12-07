@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import admin from "firebase-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,14 @@ async function getUid(req: NextRequest) {
   } catch {
     return null;
   }
+}
+
+function resultsToCsv(rows: any[]) {
+  const header = ["number", "status", "country", "network", "mccmnc", "ported", "note"];
+  const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  return [header.join(","), ...rows.map(r => [
+    esc(r.number), esc(r.status), esc(r.country), esc(r.network), esc(r.mccmnc), esc(r.ported ? "yes" : "no"), esc(r.note)
+  ].join(","))].join("\n");
 }
 
 export async function POST(req: NextRequest) {
@@ -32,14 +41,40 @@ export async function POST(req: NextRequest) {
   const ref = adminDb.collection("hlrLookups").doc(lookupId);
   await ref.set({ userId: uid, fileName: fileName || null, count, createdAt }, { merge: true });
 
-  // write results to subcollection
+  // If results array is large, store as a CSV in Cloud Storage and save path in Firestore
   if (results.length > 0) {
-    const batch = adminDb.batch();
-    for (const r of results) {
-      const docRef = ref.collection("results").doc();
-      batch.set(docRef, r);
+    try {
+      const csv = resultsToCsv(results);
+      const bucketName = process.env.FIREBASE_STORAGE_BUCKET || admin.apps?.[0]?.options?.storageBucket;
+      if (!bucketName) {
+        // fallback: write to subcollection if no storage bucket configured
+        const batch = adminDb.batch();
+        for (const r of results) {
+          const docRef = ref.collection("results").doc();
+          batch.set(docRef, r);
+        }
+        await batch.commit();
+      } else {
+        // upload CSV to storage
+        const destPath = `hlr/${uid}/${lookupId}.csv`;
+        const bucket = admin.storage().bucket(bucketName);
+        const file = bucket.file(destPath);
+        await file.save(Buffer.from(csv, "utf8"), { contentType: "text/csv" });
+        await ref.set({ storagePath: destPath }, { merge: true });
+      }
+    } catch (e) {
+      // best-effort: if something fails, fallback to storing documents
+      try {
+        const batch = adminDb.batch();
+        for (const r of results) {
+          const docRef = ref.collection("results").doc();
+          batch.set(docRef, r);
+        }
+        await batch.commit();
+      } catch (e2) {
+        console.warn("Failed to persist HLR results", e2);
+      }
     }
-    await batch.commit();
   }
 
   return NextResponse.json({ ok: true, lookupId });

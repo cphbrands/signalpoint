@@ -322,6 +322,15 @@ export default function HlrLookup() {
                             });
                             if (!resp.ok) return;
                             const data = await resp.json();
+                            // If server returned a signed download URL (for large exports), use it
+                            if (data?.downloadUrl) {
+                              const a = document.createElement("a");
+                              a.href = data.downloadUrl;
+                              a.target = "_blank";
+                              a.rel = "noopener noreferrer";
+                              a.click();
+                              return;
+                            }
                             const rows = (data?.results || []) as HlrResult[];
                             const csv = toCsv(rows);
                             download(`hlr-${h.fileName ?? h.id}-${Date.parse(h.createdAt)}.csv`, csv, "text/csv;charset=utf-8");
