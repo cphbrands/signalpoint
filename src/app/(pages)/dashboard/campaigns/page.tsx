@@ -13,23 +13,21 @@ import Link from "next/link";
 import {useEffect, useState} from "react";
 
 interface Campaign {
+  id: string;
+  name: string;
+  message: string;
+  contactCount: number;
+  segments: number;
+  requiredCredits: number;
+  delivered: number;
+  createdAt: Timestamp;
+  scheduledAt: string | Timestamp;
+  status: "completed" | "scheduled" | "failed";
 
-    id: string;
-    name: string;
-    message: string;
-    contactCount: number;
-    segments: number;
-    requiredCredits: number;
-    delivered: number;
-    createdAt: Timestamp;
-    scheduledAt: string | Timestamp;
-    status: 
-            dlrExportUrl: (data as any).dlrExportUrl ?? null,
-            dlrDone: Boolean((data as any).dlrDone),"completed" | "scheduled" | "failed";
+  // DLR export
   dlrExportUrl?: string | null;
   dlrDone?: boolean;
 }
-
 export default function Campaigns() {
     const {user} = useUser();
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -55,6 +53,8 @@ export default function Campaigns() {
                     requiredCredits: d.requiredCredits || 0,
                     delivered: d.delivered || 0,
                     status: d.status,
+            dlrExportUrl: (data as any).dlrExportUrl ?? null,
+            dlrDone: Boolean((data as any).dlrDone),
                     createdAt: d.createdAt,
                     scheduledAt: d.scheduledAt || "",
                 };
