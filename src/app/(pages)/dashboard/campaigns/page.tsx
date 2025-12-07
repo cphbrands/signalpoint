@@ -12,22 +12,7 @@ import {Loader2, Send} from "lucide-react";
 import Link from "next/link";
 import {useEffect, useState} from "react";
 
-interface Campaign {
-  id: string;
-  name: string;
-  message: string;
-  contactCount: number;
-  segments: number;
-  requiredCredits: number;
-  delivered: number;
-  createdAt: Timestamp;
-  scheduledAt: string | Timestamp;
-  status: "completed" | "scheduled" | "failed";
-
-  // DLR export
-  dlrExportUrl?: string | null;
-  dlrDone?: boolean;
-}
+import { Campaign } from "@/types/campaign";
 export default function Campaigns() {
     const {user} = useUser();
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -43,41 +28,43 @@ export default function Campaigns() {
           collection(db, "campaigns"),
           where("userId", "==", user.uid)
         );
-const unsubscribe = onSnapshot(
-          q,
-          (snapshot) => {
-            try {
-const data: Campaign[] = snapshot.docs.map((doc) => {
-                const d = doc.data();
-                return {
-                    id: doc.id,
-                    name: d.name,
-                    message: d.message || "",
-                    contactCount: d.contactCount || 0,
-                    segments: d.segments || 0,
-                    requiredCredits: d.requiredCredits || 0,
-                    delivered: d.delivered || 0,
-                    status: d.status,
-            dlrExportUrl: (data as any).dlrExportUrl ?? null,
-            dlrDone: Boolean((data as any).dlrDone),
-                    createdAt: d.createdAt,
-                    scheduledAt: d.scheduledAt || "",
-                };
-            } catch (e) {
-              console.error("[Campaigns] onSnapshot render/map error:", e);
-            } finally {
-              setLoading(false);
+        const unsubscribe = onSnapshot(
+            q,
+            (snapshot) => {
+                // build plain array first, then try to sort/set state
+                const docs = snapshot.docs.map((doc) => {
+                    const d = doc.data();
+                    return {
+                        id: doc.id,
+                        name: d.name,
+                        message: d.message || "",
+                        contactCount: d.contactCount || 0,
+                        segments: d.segments || 0,
+                        requiredCredits: d.requiredCredits || 0,
+                        delivered: d.delivered || 0,
+                        status: d.status,
+                        dlrExportUrl: (d as any).dlrExportUrl ?? null,
+                        dlrDone: Boolean((d as any).dlrDone),
+                        createdAt: d.createdAt,
+                        scheduledAt: d.scheduledAt || "",
+                    } as Campaign;
+                });
+
+                try {
+                    const data: Campaign[] = docs;
+                    data.sort((a: any, b: any) => (b.createdAt?.toDate?.()?.getTime?.() || 0) - (a.createdAt?.toDate?.()?.getTime?.() || 0));
+                    setCampaigns(data);
+                } catch (e) {
+                    console.error("[Campaigns] onSnapshot render/map error:", e);
+                } finally {
+                    setLoading(false);
+                }
+            },
+            (err) => {
+                console.error("[Campaigns] onSnapshot error:", err);
+                setLoading(false);
             }
-          },
-          (err) => {
-            console.error("[Campaigns] onSnapshot error:", err);
-            setLoading(false);
-          }
         );
-            data.sort((a:any,b:any)=> (b.createdAt?.toDate?.()?.getTime?.() || 0) - (a.createdAt?.toDate?.()?.getTime?.() || 0));
-            setCampaigns(data);
-            setLoading(false);
-        });
 
         return () => unsubscribe();
     }, [user]);
@@ -91,10 +78,16 @@ const data: Campaign[] = snapshot.docs.map((doc) => {
             return matchesSearch && matchesStatus;
         })
         .sort((a, b) => {
-            if (sortBy === "date") return b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime();
-            if (sortBy === "name") return a.name.localeCompare(b.name);
-            return 0;
-        });
+                const getTime = (x: any) => {
+                    if (!x) return 0;
+                    if (typeof x?.toDate === "function") return x.toDate().getTime();
+                    return new Date(String(x)).getTime();
+                };
+
+                if (sortBy === "date") return getTime(b.createdAt) - getTime(a.createdAt);
+                if (sortBy === "name") return a.name.localeCompare(b.name);
+                return 0;
+            });
 
     if (loading)
         return (
