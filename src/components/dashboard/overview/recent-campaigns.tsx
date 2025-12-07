@@ -50,11 +50,10 @@ export default function RecentCampaigns() {
                     status: d.status,
                     createdAt: d.createdAt,
                     scheduledAt: d.scheduledAt || "",
-                
-            // DLR export
-            dlrExportUrl: (data as any).dlrExportUrl ?? null,
-            dlrDone: (data as any).dlrDone ?? false,
-};
+                    // DLR export
+                    dlrExportUrl: (d as any).dlrExportUrl ?? null,
+                    dlrDone: Boolean((d as any).dlrDone),
+                };
             });
             setCampaigns(data);
             setLoading(false);
