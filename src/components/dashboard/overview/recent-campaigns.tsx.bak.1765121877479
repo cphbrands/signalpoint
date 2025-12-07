@@ -21,10 +21,6 @@ interface Campaign {
     createdAt: Timestamp;
     scheduledAt: string | Timestamp;
     status: "completed" | "scheduled" | "failed";
-  // DLR export
-  dlrExportUrl?: string | null;
-  dlrDone?: boolean;
-
 }
 
 export default function RecentCampaigns() {
@@ -50,11 +46,7 @@ export default function RecentCampaigns() {
                     status: d.status,
                     createdAt: d.createdAt,
                     scheduledAt: d.scheduledAt || "",
-                
-            // DLR export
-            dlrExportUrl: (data as any).dlrExportUrl ?? null,
-            dlrDone: (data as any).dlrDone ?? false,
-};
+                };
             });
             setCampaigns(data);
             setLoading(false);

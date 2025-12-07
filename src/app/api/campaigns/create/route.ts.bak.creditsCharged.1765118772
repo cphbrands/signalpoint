@@ -167,8 +167,6 @@ export async function POST(req: NextRequest) {
         sendableCount: parsed.sendable.length,      // unique valid that will actually be sent
         segments,
         requiredCredits,
-        creditsCharged: true,
-        chargedAt: FieldValue.serverTimestamp(),
         delivered: 0,
         failed: 0,
         skipped: 0,

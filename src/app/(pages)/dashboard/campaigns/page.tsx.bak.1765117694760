@@ -23,9 +23,7 @@ interface Campaign {
     delivered: number;
     createdAt: Timestamp;
     scheduledAt: string | Timestamp;
-    status: 
-            dlrExportUrl: (data as any).dlrExportUrl ?? null,
-            dlrDone: Boolean((data as any).dlrDone),"completed" | "scheduled" | "failed";
+    status: "completed" | "scheduled" | "failed";
   dlrExportUrl?: string | null;
   dlrDone?: boolean;
 }

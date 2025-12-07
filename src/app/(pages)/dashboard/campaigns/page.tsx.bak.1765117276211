@@ -13,7 +13,6 @@ import Link from "next/link";
 import {useEffect, useState} from "react";
 
 interface Campaign {
-
     id: string;
     name: string;
     message: string;
@@ -23,11 +22,7 @@ interface Campaign {
     delivered: number;
     createdAt: Timestamp;
     scheduledAt: string | Timestamp;
-    status: 
-            dlrExportUrl: (data as any).dlrExportUrl ?? null,
-            dlrDone: Boolean((data as any).dlrDone),"completed" | "scheduled" | "failed";
-  dlrExportUrl?: string | null;
-  dlrDone?: boolean;
+    status: "completed" | "scheduled" | "failed";
 }
 
 export default function Campaigns() {
