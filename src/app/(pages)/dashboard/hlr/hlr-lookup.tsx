@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { auth } from "@/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +57,10 @@ function saveHistory(items: HistoryItem[]) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 20)));
 }
 
+function csvKeyFor(id: string) {
+  return `hlr_csv_${id}`;
+}
+
 function toCsv(rows: HlrResult[]) {
   const header = ["number","status","country","network","mccmnc","ported","note"];
   const esc = (v: any) => `"${String(v ?? "").replace(/"/g,'""')}"`;
@@ -92,6 +97,24 @@ export default function HlrLookup() {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => { setHistory(loadHistory()); }, []);
+
+  // fetch server-side history from Firestore for logged in user
+  async function fetchHistoryFromServer() {
+    try {
+      if (!auth.currentUser) return;
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(`/api/hlr/list`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data?.ok) setHistory(data.items || []);
+    } catch (e) {
+      console.warn("Could not fetch HLR history from server", e);
+    }
+  }
+
+  useEffect(() => {
+    void fetchHistoryFromServer();
+  }, []);
 
   const counts = useMemo(() => ({
     active: results.filter(r => r.status === "active").length,
@@ -141,6 +164,22 @@ export default function HlrLookup() {
       const next = [item, ...loadHistory()];
       saveHistory(next);
       setHistory(next.slice(0, 20));
+
+      // try saving to Firestore via server endpoint
+      try {
+        const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+        if (token) {
+          await fetch("/api/hlr/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ lookupId: item.id, fileName: item.fileName, count: item.count, createdAt: item.createdAt, results: out }),
+          });
+          // refresh server history
+          void fetchHistoryFromServer();
+        }
+      } catch (e) {
+        console.warn("Failed to save HLR results to server", e);
+      }
     } catch (e: any) {
       setErr(e?.message ?? "Unknown error");
     } finally {
@@ -148,12 +187,18 @@ export default function HlrLookup() {
     }
   }
 
-  function clearAll() {
+  async function clearAll() {
     setFileName(null);
     setNums([]);
     setStats({ totalFound: 0, uniqueValid: 0, duplicates: 0 });
     setResults([]);
     setErr(null);
+    // remove local history and ask server for refreshed state
+    try {
+      saveHistory([]);
+      setHistory([]);
+      void fetchHistoryFromServer();
+    } catch {}
   }
 
   return (
@@ -252,19 +297,47 @@ export default function HlrLookup() {
           <CardDescription>Stored locally in your browser (localStorage).</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {history.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No history yet. Upload a CSV and run HLR.</div>
-          ) : (
-            history.slice(0, 20).map((h) => (
-              <div key={h.id} className="flex items-center justify-between rounded-lg border bg-muted/10 p-3">
-                <div className="text-sm">
-                  <div className="font-medium">{h.fileName ?? "Lookup"}</div>
-                  <div className="text-xs text-muted-foreground">{h.createdAt} • {h.count} numbers</div>
-                </div>
-                <Badge variant="outline">done</Badge>
-              </div>
-            ))
-          )}
+            {history.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No history yet. Upload a CSV and run HLR.</div>
+            ) : (
+              history.slice(0, 20).map((h) => {
+                return (
+                  <div key={h.id} className="flex items-center justify-between rounded-lg border bg-muted/10 p-3">
+                    <div className="text-sm">
+                      <div className="font-medium">{h.fileName ?? "Lookup"}</div>
+                      <div className="text-xs text-muted-foreground">{h.createdAt} • {h.count} numbers</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={async () => {
+                          try {
+                            if (!auth.currentUser) return;
+                            const token = await auth.currentUser.getIdToken();
+                            const resp = await fetch("/api/hlr/status", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                              body: JSON.stringify({ lookupId: h.id }),
+                            });
+                            if (!resp.ok) return;
+                            const data = await resp.json();
+                            const rows = (data?.results || []) as HlrResult[];
+                            const csv = toCsv(rows);
+                            download(`hlr-${h.fileName ?? h.id}-${Date.parse(h.createdAt)}.csv`, csv, "text/csv;charset=utf-8");
+                          } catch (e) {
+                            console.warn("Failed to download CSV from server", e);
+                          }
+                        }}
+                      >
+                        Download CSV
+                      </Button>
+                      <Badge variant="outline">done</Badge>
+                    </div>
+                  </div>
+                );
+              })
+            )}
         </CardContent>
       </Card>
     </div>
