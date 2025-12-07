@@ -89,6 +89,43 @@ export default function CreateCampaign() {
     }
 const cleanSenderId = (v: string) => (v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11);
 
+
+type CountryOption = { id: string; label: string; code: string; nationalLen: number };
+
+const COUNTRIES_TOP30: CountryOption[] = [
+  { id: "DK", label: "Denmark (+45)", code: "45", nationalLen: 8 },
+  { id: "SE", label: "Sweden (+46)", code: "46", nationalLen: 9 },
+  { id: "NO", label: "Norway (+47)", code: "47", nationalLen: 8 },
+  { id: "FI", label: "Finland (+358)", code: "358", nationalLen: 9 },
+  { id: "DE", label: "Germany (+49)", code: "49", nationalLen: 10 },
+  { id: "NL", label: "Netherlands (+31)", code: "31", nationalLen: 9 },
+  { id: "BE", label: "Belgium (+32)", code: "32", nationalLen: 9 },
+  { id: "FR", label: "France (+33)", code: "33", nationalLen: 9 },
+  { id: "ES", label: "Spain (+34)", code: "34", nationalLen: 9 },
+  { id: "IT", label: "Italy (+39)", code: "39", nationalLen: 10 },
+  { id: "PT", label: "Portugal (+351)", code: "351", nationalLen: 9 },
+  { id: "PL", label: "Poland (+48)", code: "48", nationalLen: 9 },
+  { id: "AT", label: "Austria (+43)", code: "43", nationalLen: 10 },
+  { id: "CH", label: "Switzerland (+41)", code: "41", nationalLen: 9 },
+  { id: "IE", label: "Ireland (+353)", code: "353", nationalLen: 9 },
+  { id: "UK", label: "United Kingdom (+44)", code: "44", nationalLen: 10 },
+  { id: "US", label: "United States (+1)", code: "1", nationalLen: 10 },
+  { id: "CA", label: "Canada (+1)", code: "1", nationalLen: 10 },
+  { id: "AU", label: "Australia (+61)", code: "61", nationalLen: 9 },
+  { id: "NZ", label: "New Zealand (+64)", code: "64", nationalLen: 9 },
+  { id: "BR", label: "Brazil (+55)", code: "55", nationalLen: 11 },
+  { id: "MX", label: "Mexico (+52)", code: "52", nationalLen: 10 },
+  { id: "AR", label: "Argentina (+54)", code: "54", nationalLen: 10 },
+  { id: "ZA", label: "South Africa (+27)", code: "27", nationalLen: 9 },
+  { id: "TR", label: "Turkey (+90)", code: "90", nationalLen: 10 },
+  { id: "AE", label: "UAE (+971)", code: "971", nationalLen: 9 },
+  { id: "SA", label: "Saudi Arabia (+966)", code: "966", nationalLen: 9 },
+  { id: "IN", label: "India (+91)", code: "91", nationalLen: 10 },
+  { id: "PK", label: "Pakistan (+92)", code: "92", nationalLen: 10 },
+  { id: "PH", label: "Philippines (+63)", code: "63", nationalLen: 10 },
+];
+
+
   const { user } = useUser();
   const userCurrentCredits = useCurrentCredits();
 
@@ -96,6 +133,7 @@ const cleanSenderId = (v: string) => (v || "").toUpperCase().replace(/[^A-Z0-9]/
   const [message, setMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
   
+  const [countryId, setCountryId] = useState("DK");
     const [fileStats, setFileStats] = useState<{ charged:number; sendable:number; invalid:number; duplicates:number; } | null>(null);
 const [sendType, setSendType] = useState<"now" | "later">("now");
   const [scheduledDate, setScheduledDate] = useState("");
@@ -244,6 +282,27 @@ if (!token) {
                             Max 11 characters (A–Z/0–9). {campaignName.length}/11 — {11 - campaignName.length} remaining{campaignName ? ` • Will send as: ${campaignName}` : ""}
                         </p>
           </div>
+            <div className="grid gap-2 mt-4">
+              <Label className="mb-2">Country</Label>
+              <select
+                className="h-10 rounded-md border bg-background px-3 text-sm"
+                value={countryId}
+                onChange={(e) => {
+                  const next = COUNTRIES_TOP30.find(c => c.id === e.target.value) || COUNTRIES_TOP30[0];
+                  setCountryId(next.id);
+                  setCountryCode(next.code);
+                  setNationalNumberLength(next.nationalLen);
+                }}
+              >
+                {COUNTRIES_TOP30.map(c => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Format must be digits only and include the country code. Example (Denmark): 45xxxxxxxx
+              </p>
+            </div>
+
 
           <div>
             <Label className="mb-2">Message</Label>
