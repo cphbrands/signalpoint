@@ -158,6 +158,21 @@ export default function HlrLookup() {
 
   return (
     <div className="w-full space-y-6">
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Why run HLR before a campaign?</CardTitle>
+          <CardDescription>Running an HLR check helps you avoid wasted sends and improves campaign performance.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="list-disc ml-5 space-y-2 text-sm">
+            <li>Reduce wasted credits: avoid sending to inactive or unreachable numbers.</li>
+            <li>Improve deliverability: remove numbers that are inactive, ported or blocked before sending.</li>
+            <li>Lower costs: fewer failed attempts and carrier rejections saves money.</li>
+            <li>Cleaner reporting: campaign metrics reflect only valid targets.</li>
+            <li>Compliance & reputation: keep sending lists healthy to reduce carrier filtering and protect sender reputation.</li>
+          </ul>
+        </CardContent>
+      </Card>
       {/* Hidden-but-clickable input (sr-only is safer than hidden) */}
       <input
         ref={fileRef}
@@ -213,13 +228,9 @@ export default function HlrLookup() {
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
             <CardTitle>Results</CardTitle>
-            <CardDescription>Mock results (replace with a real provider later).</CardDescription>
+            <CardDescription>Results are not shown here for privacy — export a CSV to view them.</CardDescription>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
-            <Badge variant="outline">Active: {counts.active}</Badge>
-            <Badge variant="outline">Inactive: {counts.inactive}</Badge>
-            <Badge variant="outline">Unknown: {counts.unknown}</Badge>
-            <Badge variant="outline">Error: {counts.error}</Badge>
             <Button
               variant="secondary"
               onClick={() => download(`hlr-results-${Date.now()}.csv`, toCsv(results), "text/csv;charset=utf-8")}
@@ -231,30 +242,7 @@ export default function HlrLookup() {
         </CardHeader>
 
         <CardContent className="space-y-2">
-          {results.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No results yet.</div>
-          ) : (
-            results.map((r) => (
-              <div key={r.number} className="flex items-center justify-between rounded-lg border bg-muted/10 p-3">
-                <div className="space-y-1">
-                  <div className="font-medium">{r.number}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {r.country ?? "-"} • {r.network ?? "-"} • {r.mccmnc ?? "-"} {r.ported ? "• ported" : ""}
-                  </div>
-                  {r.note ? <div className="text-xs text-muted-foreground">{r.note}</div> : null}
-                </div>
-                <Badge
-                  variant={
-                    r.status === "active" ? "default" :
-                    r.status === "inactive" ? "destructive" :
-                    r.status === "unknown" ? "outline" : "destructive"
-                  }
-                >
-                  {r.status}
-                </Badge>
-              </div>
-            ))
-          )}
+          <div className="text-sm text-muted-foreground">Results are only available via CSV export. Use the "Export CSV" button when a run completes.</div>
         </CardContent>
       </Card>
 
