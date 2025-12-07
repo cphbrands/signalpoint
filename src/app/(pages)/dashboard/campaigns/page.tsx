@@ -37,6 +37,7 @@ export default function Campaigns() {
                     return {
                         id: doc.id,
                         name: d.name,
+                                    senderId: (d as any).senderId || (d as any).sender || null,
                         message: d.message || "",
                         contactCount: d.contactCount || 0,
                         segments: d.segments || 0,

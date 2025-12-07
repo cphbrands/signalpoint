@@ -43,7 +43,14 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => (
 
           return (
             <TableRow key={c.id}>
-              <TableCell>{c.name}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{c.name}</span>
+                    {c.senderId ? (
+                      <span className="text-xs text-muted-foreground">Sender: {c.senderId}</span>
+                    ) : null}
+                  </div>
+                </TableCell>
               <TableCell className="max-w-sm whitespace-normal break-words">{c.message}</TableCell>
               <TableCell>{c.contactCount}</TableCell>
               <TableCell>{c.segments}</TableCell>
@@ -66,34 +73,6 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => (
                     >
                       Download
                     </a>
-                    <button
-                      className="text-xs text-muted-foreground underline"
-                      onClick={async () => {
-                        try {
-                          const res = await fetch(c.dlrExportUrl as string);
-                          if (!res.ok) throw new Error(`Failed to fetch DLR CSV: ${res.status}`);
-                          const text = await res.text();
-                          // parse CSV simple: first line header, then rows like: messageId,msisdn,dlrStatus,...
-                          const rows = text.trim().split(/\r?\n/).slice(1).map(r=>r.split(","));
-                          let delivered = 0;
-                          let failed = 0;
-                          let pending = 0;
-                          for (const r of rows) {
-                            const status = String(r[2] || "").toLowerCase();
-                            if (status === "delivered") delivered++;
-                            else if (status === "failed") failed++;
-                            else pending++;
-                          }
-                          alert(`DLR summary:\nDelivered: ${delivered}\nFailed: ${failed}\nPending/other: ${pending}`);
-                        } catch (err: any) {
-                          console.error(err);
-                          alert(`Unable to load DLR summary: ${String(err?.message || err)}`);
-                        }
-                      }}
-                      title="Show quick DLR summary (delivered/failed)"
-                    >
-                      Summary
-                    </button>
                   </div>
                 ) : (
                   <span className="text-muted-foreground">—</span>

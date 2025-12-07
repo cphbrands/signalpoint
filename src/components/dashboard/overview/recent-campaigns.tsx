@@ -41,6 +41,8 @@ export default function RecentCampaigns() {
                 const d = doc.data();
                 return {
                     id: doc.id,
+                    // DLR export
+                    senderId: (d as any).senderId || (d as any).sender || null,
                     name: d.name,
                     message: d.message || "",
                     contactCount: d.contactCount || 0,
