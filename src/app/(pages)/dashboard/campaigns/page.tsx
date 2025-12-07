@@ -23,7 +23,9 @@ interface Campaign {
     delivered: number;
     createdAt: Timestamp;
     scheduledAt: string | Timestamp;
-  status: "completed" | "scheduled" | "failed";
+    status: 
+            dlrExportUrl: (data as any).dlrExportUrl ?? null,
+            dlrDone: Boolean((data as any).dlrDone),"completed" | "scheduled" | "failed";
   dlrExportUrl?: string | null;
   dlrDone?: boolean;
 }
@@ -45,9 +47,6 @@ export default function Campaigns() {
             const data: Campaign[] = snapshot.docs.map((doc) => {
                 const d = doc.data();
                 return {
-            // DLR export
-            dlrExportUrl: (data as any).dlrExportUrl ?? null,
-            dlrDone: (data as any).dlrDone ?? false,
                     id: doc.id,
                     name: d.name,
                     message: d.message || "",
