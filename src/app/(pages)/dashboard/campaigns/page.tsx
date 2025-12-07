@@ -39,10 +39,15 @@ export default function Campaigns() {
     useEffect(() => {
         if (!user) return;
 
-        const q = query(collection(db, "campaigns"), where("userId", "==", user.uid));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data: Campaign[] = snapshot.docs.map((doc) => {
+        const q = query(
+          collection(db, "campaigns"),
+          where("userId", "==", user.uid)
+        );
+const unsubscribe = onSnapshot(
+          q,
+          (snapshot) => {
+            try {
+const data: Campaign[] = snapshot.docs.map((doc) => {
                 const d = doc.data();
                 return {
                     id: doc.id,
@@ -58,7 +63,18 @@ export default function Campaigns() {
                     createdAt: d.createdAt,
                     scheduledAt: d.scheduledAt || "",
                 };
-            });
+            } catch (e) {
+              console.error("[Campaigns] onSnapshot render/map error:", e);
+            } finally {
+              setLoading(false);
+            }
+          },
+          (err) => {
+            console.error("[Campaigns] onSnapshot error:", err);
+            setLoading(false);
+          }
+        );
+            data.sort((a:any,b:any)=> (b.createdAt?.toDate?.()?.getTime?.() || 0) - (a.createdAt?.toDate?.()?.getTime?.() || 0));
             setCampaigns(data);
             setLoading(false);
         });
