@@ -35,7 +35,9 @@ const CampaignTable: React.FC<CampaignTableProps> = ({campaigns}) => (
                     <TableHead>Delivery Date</TableHead>
                     <TableHead>Delivered</TableHead>
                     <TableHead>Status</TableHead>
-                </TableRow>
+                
+              <TableHead>DLR</TableHead>
+</TableRow>
             </TableHeader>
             <TableBody>
                 {campaigns.map((c) => (
@@ -60,7 +62,22 @@ const CampaignTable: React.FC<CampaignTableProps> = ({campaigns}) => (
                         <TableCell>
                             <CampaignStatusBadge status={c.status} />
                         </TableCell>
-                    </TableRow>
+                    
+              <TableCell>
+                c?.dlrExportUrl ? (
+                  <a
+                    href={c.dlrExportUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    Download DLR CSV
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+</TableRow>
                 ))}
             </TableBody>
         </Table>
