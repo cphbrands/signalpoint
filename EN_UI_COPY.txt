@@ -1,0 +1,22 @@
+Campaign Summary
+- Contacts uploaded: {{totalUploaded}}
+- Sendable contacts: {{sendableCount}}
+- Duplicates removed: {{duplicates}}
+- Invalid numbers: {{invalid}}
+- Billable contacts: {{billableCount}}
+- Segments per message: {{segments}}
+- Credits charged: {{requiredCredits}}
+
+Tooltip / Small text
+Why were credits charged for more than the sendable contacts?
+We charge credits based on the total number of contacts uploaded. We still remove duplicates and invalid numbers to protect deliverability.
+
+Campaign Status Labels
+- queued: Queued
+- preparing: Preparing
+- processing: Sending
+- completed: Completed
+- failed: Failed
+
+Gateway error message
+Sending stopped due to a gateway error. Please check sender ID, balance, or gateway status and try again.
