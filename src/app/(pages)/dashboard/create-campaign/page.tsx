@@ -313,23 +313,6 @@ if (!token) {
               onChange={(e) => setMessage(e.target.value)}
             />
         <div className="grid grid-cols-2 gap-4 mt-4">
-          <div>
-            <Label>Country code</Label>
-            <Input
-              value={countryCode}
-              onChange={(e) => setCountryCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
-              placeholder="e.g. 45"
-            />
-          </div>
-          <div>
-            <Label>National number length</Label>
-            <Input
-              type="number"
-              value={nationalNumberLength}
-              onChange={(e) => setNationalNumberLength(Math.max(4, Math.min(12, Number(e.target.value || 8))))}
-              placeholder="e.g. 8"
-            />
-          </div>
         </div>
 
             <p className="text-sm text-gray-500 mt-1">
