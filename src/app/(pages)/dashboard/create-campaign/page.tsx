@@ -17,6 +17,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 export default function CreateCampaign() {
+    const [countryCode, setCountryCode] = useState("45");
+    const [nationalNumberLength, setNationalNumberLength] = useState(8);
+
     
     function normalizePhoneCandidate(v: any): string | null {
         const digits = String(v ?? "").replace(/[^\d]/g, "");
@@ -168,6 +171,8 @@ if (!token) {
           message,
           fileURL,
           fileName: file?.name || "contacts.csv",
+          countryCode,
+          nationalNumberLength,
           sendType,
           scheduledAt: sendType === "later" ? new Date(scheduledDate).toISOString() : null,
         }),
@@ -248,6 +253,26 @@ if (!token) {
               className="resize-none h-32"
               onChange={(e) => setMessage(e.target.value)}
             />
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div>
+            <Label>Country code</Label>
+            <Input
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+              placeholder="e.g. 45"
+            />
+          </div>
+          <div>
+            <Label>National number length</Label>
+            <Input
+              type="number"
+              value={nationalNumberLength}
+              onChange={(e) => setNationalNumberLength(Math.max(4, Math.min(12, Number(e.target.value || 8))))}
+              placeholder="e.g. 8"
+            />
+          </div>
+        </div>
+
             <p className="text-sm text-gray-500 mt-1">
               Characters: {message.length} | Segments (estimate): {segments}
             </p>

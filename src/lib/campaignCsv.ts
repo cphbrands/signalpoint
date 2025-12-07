@@ -8,6 +8,40 @@ export function normalizeMsisdn(input: string): string | null {
   return d;
 }
 
+export type CampaignCsvOptions = {
+  // Model B: campaign-selected country rules
+  countryCode?: string;            // e.g. "45"
+  nationalNumberLength?: number;   // e.g. 8
+  strictModelB?: boolean;          // if true: digits-only, reject +/00, require CC+len exactly
+};
+
+export function normalizeMsisdnModelBStrict(
+  input: string,
+  countryCode: string,
+  nationalNumberLength: number
+): string | null {
+  const raw = String(input ?? "").trim();
+  if (!raw) return null;
+
+  // Strict: reject any + and 00-prefix formats (must be digits-only input)
+  if (raw.includes("+")) return null;
+  if (raw.startsWith("00")) return null;
+
+  // Digits-only (no spaces/dashes)
+  if (!/^\d+$/.test(raw)) return null;
+
+  const cc = String(countryCode || "").trim();
+  const nat = Number(nationalNumberLength || 0);
+  if (!cc || !nat) return null;
+
+  const expectedLen = cc.length + nat;
+
+  if (!raw.startsWith(cc)) return null;
+  if (raw.length !== expectedLen) return null;
+
+  return raw;
+}
+
 export function estimateSegments(message: string): number {
   const msg = String(message ?? "");
   const isUnicode = /[^\u0000-\u007f]/.test(msg);
@@ -17,9 +51,14 @@ export function estimateSegments(message: string): number {
   return Math.ceil(msg.length / multi);
 }
 
-export function parseCampaignCsv(text: string) {
+export function parseCampaignCsv(text: string, opts: CampaignCsvOptions = {}) {
   const lines = String(text ?? "").split(/\r?\n/);
   const seen = new Set<string>();
+
+  const strictModelB = !!opts.strictModelB;
+  const cc = String(opts.countryCode || "").trim();
+  const natLen = Number(opts.nationalNumberLength || 0);
+
 
   let totalParsed = 0;     // charge for this
   let invalid = 0;
@@ -38,7 +77,9 @@ export function parseCampaignCsv(text: string) {
 
       totalParsed++;
 
-      const n = normalizeMsisdn(t);
+      const n = strictModelB
+        ? normalizeMsisdnModelBStrict(t, cc, natLen)
+        : normalizeMsisdn(t);
       if (!n) {
         invalid++;
         continue;

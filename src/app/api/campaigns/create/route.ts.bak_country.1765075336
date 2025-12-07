@@ -56,19 +56,6 @@ export async function POST(req: NextRequest) {
   if (!uid) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
   const body = await req.json();
-
-  // --- Model B (country-based) number rules ---
-  // Default DK: countryCode "45", national length 8 (so numbers must be 45########)
-  const countryCode = String((body?.countryCode ?? "45")).trim();
-  const nationalNumberLength = Number(body?.nationalNumberLength ?? 8);
-  if (!/^\d{1,3}$/.test(countryCode)) {
-    return NextResponse.json({ error: "INVALID_COUNTRY_CODE" }, { status: 400 });
-  }
-  if (!Number.isFinite(nationalNumberLength) || nationalNumberLength < 4 || nationalNumberLength > 12) {
-    return NextResponse.json({ error: "INVALID_NATIONAL_NUMBER_LENGTH" }, { status: 400 });
-  }
-
-
   const message = String(body.message || "").trim();
   const fileURL = String(body.fileURL || "").trim();
   const fileName = String(body.fileName || "contacts.csv").trim();
@@ -98,7 +85,7 @@ export async function POST(req: NextRequest) {
   // parseCampaignCsv() returns:
   // - totalParsed   (includes invalid + duplicates)  => CHARGED
   // - sendable      (unique valid)                   => SENT
-  const parsed = parseCampaignCsv(text, { strictModelB: true, countryCode, nationalNumberLength });
+  const parsed = parseCampaignCsv(text);
 
   if (parsed.sendable.length === 0) {
     const preview = text.slice(0, 300);
@@ -159,8 +146,6 @@ export async function POST(req: NextRequest) {
         name: null,
         message,
         fileURL,
-        countryCode,
-        nationalNumberLength,
 
         // ✅ Store charged vs sendable
         contactCount: chargedContacts,              // charged contacts
