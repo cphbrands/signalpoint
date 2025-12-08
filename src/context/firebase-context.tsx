@@ -119,8 +119,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({children}) => {
 
     // reset password
     const resetPassword = async (email: string) => {
+        // Use the current origin as continue URL if available, otherwise fall back to env or known domain
+        const continueUrl = typeof window !== "undefined" && window.location?.origin
+            ? `${window.location.origin}/login`
+            : (process.env.NEXT_PUBLIC_AUTH_CONTINUE_URL || "https://signal-points.com/login");
+
         await sendPasswordResetEmail(auth, email, {
-            url: "https://bulksms-weld.vercel.app/login",
+            url: continueUrl,
         });
     };
 
