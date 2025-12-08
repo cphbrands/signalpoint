@@ -39,13 +39,35 @@ export async function POST(req: NextRequest) {
   if (!lookupId) return NextResponse.json({ ok: false, error: "LOOKUP_ID_REQUIRED" }, { status: 400 });
 
   const ref = adminDb.collection("hlrLookups").doc(lookupId);
-  await ref.set({ userId: uid, fileName: fileName || null, count, createdAt }, { merge: true });
+
+  // Create/update doc + auto-queue if status not set yet
+  await adminDb.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const existing = snap.exists ? (snap.data() as any) : null;
+
+    const payload: any = {
+      userId: uid,
+      fileName: fileName || null,
+      count,
+      createdAt,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Only set status if it doesn't already exist (so we don't reset completed jobs)
+    if (!existing?.status) {
+      payload.status = "queued";
+      payload.processed = 0;
+      payload.total = count || 0;
+    }
+
+    tx.set(ref, payload, { merge: true });
+  });
 
   // If results array is large, store as a CSV in Cloud Storage and save path in Firestore
   if (results.length > 0) {
     try {
       const csv = resultsToCsv(results);
-      const bucketName = process.env.FIREBASE_STORAGE_BUCKET || admin.apps?.[0]?.options?.storageBucket;
+      const bucketName = process.env.FIREBASE_STORAGE_BUCKET || (admin.apps?.[0]?.options as any)?.storageBucket;
       if (!bucketName) {
         // fallback: write to subcollection if no storage bucket configured
         const batch = adminDb.batch();
@@ -60,7 +82,15 @@ export async function POST(req: NextRequest) {
         const bucket = admin.storage().bucket(bucketName);
         const file = bucket.file(destPath);
         await file.save(Buffer.from(csv, "utf8"), { contentType: "text/csv" });
-        await ref.set({ storagePath: destPath }, { merge: true });
+
+        // Don't touch status here (worker handles processing/completed)
+        await ref.set(
+          {
+            storagePath: destPath,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
       }
     } catch (e) {
       // best-effort: if something fails, fallback to storing documents
