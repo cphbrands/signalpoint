@@ -17,9 +17,39 @@ async function getUid(req: NextRequest) {
   }
 }
 
-function numbersToCsv(numbers: string[]) {
-  // One number per line, first column only (worker reads first column)
-  return numbers.map((n) => String(n ?? "").trim()).filter(Boolean).join("\n");
+type HlrRow = {
+  number: string;
+  status: string;
+  country?: string;
+  network?: string;
+  mccmnc?: string;
+  ported?: boolean;
+  note?: string;
+};
+
+function resultsToCsv(rows: HlrRow[]) {
+  const header = ["number", "status", "country", "network", "mccmnc", "ported", "note"];
+  const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  return [
+    header.join(","),
+    ...rows.map((r) =>
+      [
+        esc(r.number),
+        esc(r.status),
+        esc(r.country),
+        esc(r.network),
+        esc(r.mccmnc),
+        esc(r.ported ? "yes" : "no"),
+        esc(r.note),
+      ].join(",")
+    ),
+  ].join("\n");
+}
+
+function toCreatedAtTs(createdAt: string) {
+  const d = new Date(createdAt);
+  if (Number.isFinite(d.getTime())) return admin.firestore.Timestamp.fromDate(d);
+  return admin.firestore.FieldValue.serverTimestamp();
 }
 
 export async function POST(req: NextRequest) {
@@ -29,62 +59,57 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const lookupId = String(body.lookupId || "").trim();
   const fileName = body.fileName ? String(body.fileName) : null;
+  const count = Number(body.count || 0);
   const createdAt = String(body.createdAt || new Date().toISOString());
-  const numbers = Array.isArray(body.numbers) ? body.numbers : [];
-  const count = Number(body.count || numbers.length || 0);
+  const results: HlrRow[] = Array.isArray(body.results) ? body.results : [];
 
   if (!lookupId) return NextResponse.json({ ok: false, error: "LOOKUP_ID_REQUIRED" }, { status: 400 });
-  if (!numbers.length) return NextResponse.json({ ok: false, error: "NO_NUMBERS" }, { status: 400 });
 
   const ref = adminDb.collection("hlrLookups").doc(lookupId);
 
-  // Write doc + set queued only if status not already set
-  await adminDb.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const existing = snap.exists ? (snap.data() as any) : null;
-
-    const payload: any = {
+  // Base metadata
+  await ref.set(
+    {
       userId: uid,
       fileName,
       count,
       createdAt,
-      createdAtTs: admin.firestore.FieldValue.serverTimestamp(),
-      createdAt,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    if (!existing?.status) {
-      payload.status = "queued";
-      payload.processed = 0;
-      payload.total = count || numbers.length || 0;
-    }
-
-    tx.set(ref, payload, { merge: true });
-  });
-
-  // Upload INPUT numbers CSV (worker reads this)
-  const csv = numbersToCsv(numbers);
-
-  const bucketName =
-    process.env.FIREBASE_STORAGE_BUCKET || (admin.apps?.[0]?.options as any)?.storageBucket;
-
-  if (!bucketName) {
-    return NextResponse.json({ ok: false, error: "NO_STORAGE_BUCKET" }, { status: 500 });
-  }
-
-  const destPath = `hlr/${uid}/${lookupId}.csv`;
-  const bucket = admin.storage().bucket(bucketName);
-  const file = bucket.file(destPath);
-
-  await file.save(Buffer.from(csv, "utf8"), { contentType: "text/csv; charset=utf-8" });
-
-  await ref.set(
-    {
-      storagePath: destPath,
+      createdAtTs: toCreatedAtTs(createdAt),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     },
     { merge: true }
   );
+
+  // Store results (CSV in Storage when available)
+  if (results.length > 0) {
+    const bucketName =
+      process.env.FIREBASE_STORAGE_BUCKET || (admin.apps?.[0]?.options as any)?.storageBucket;
+
+    if (bucketName) {
+      const csv = resultsToCsv(results);
+      const destPath = `hlr/${uid}/${lookupId}.csv`;
+
+      const bucket = admin.storage().bucket(String(bucketName));
+      const file = bucket.file(destPath);
+
+      await file.save(Buffer.from(csv, "utf8"), { contentType: "text/csv" });
+
+      await ref.set(
+        {
+          storagePath: destPath,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    } else {
+      // fallback: store rows in subcollection if Storage bucket is not configured
+      const batch = adminDb.batch();
+      for (const r of results) {
+        batch.set(ref.collection("results").doc(), r);
+      }
+      await batch.commit();
+    }
+  }
 
   return NextResponse.json({ ok: true, lookupId });
 }
