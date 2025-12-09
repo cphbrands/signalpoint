@@ -29,25 +29,46 @@ export async function POST(req: NextRequest) {
   const snap = await ref.get();
   if (!snap.exists) return NextResponse.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });
 
-  const data = snap.data() || {};
-  if (data.userId !== uid) return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
+  const data = snap.data() as any;
+  if (String(data.userId || "") !== uid) {
+    return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
+  }
 
-  // If we stored a CSV in Cloud Storage, return a signed download URL instead of embedding results
-  if (data.storagePath) {
-    try {
-      const bucketName = process.env.FIREBASE_STORAGE_BUCKET || admin.apps?.[0]?.options?.storageBucket;
+  const status = String(data.status || "unknown");
+  const processed = Number(data.processed || 0);
+  const total = Number(data.total || data.count || 0);
+
+  // Prefer worker output
+  const resultPath = data.resultStoragePath || null;
+
+  let downloadUrl: string | null = null;
+
+  if (status === "completed" && resultPath) {
+    const bucketName =
+      process.env.FIREBASE_STORAGE_BUCKET || (admin.apps?.[0]?.options as any)?.storageBucket;
+
+    if (bucketName) {
       const bucket = admin.storage().bucket(bucketName);
-      const file = bucket.file(String(data.storagePath));
-      const [url] = await file.getSignedUrl({ action: "read", expires: Date.now() + 1000 * 60 * 60 }); // 1 hour
-      return NextResponse.json({ ok: true, lookupId, lookup: data, downloadUrl: url });
-    } catch (e) {
-      console.warn("Failed to generate signed URL for HLR CSV", e);
-      // fall through to try returning results subcollection
+      const file = bucket.file(String(resultPath));
+      const [url] = await file.getSignedUrl({
+        action: "read",
+        expires: Date.now() + 10 * 60 * 1000, // 10 min
+      });
+      downloadUrl = url;
     }
   }
 
-  const resultsSnap = await ref.collection("results").get();
-  const results = resultsSnap.docs.map((d) => d.data());
-
-  return NextResponse.json({ ok: true, lookupId, lookup: data, results });
+  return NextResponse.json({
+    ok: true,
+    status,
+    processed,
+    total,
+    downloadUrl,
+    resultSignedUrl: data.resultSignedUrl || null,
+    lookup: {
+      id: lookupId,
+      fileName: data.fileName || null,
+      createdAt: data.createdAt || null,
+    },
+  });
 }

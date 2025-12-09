@@ -17,12 +17,9 @@ async function getUid(req: NextRequest) {
   }
 }
 
-function resultsToCsv(rows: any[]) {
-  const header = ["number", "status", "country", "network", "mccmnc", "ported", "note"];
-  const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  return [header.join(","), ...rows.map(r => [
-    esc(r.number), esc(r.status), esc(r.country), esc(r.network), esc(r.mccmnc), esc(r.ported ? "yes" : "no"), esc(r.note)
-  ].join(","))].join("\n");
+function numbersToCsv(numbers: string[]) {
+  // One number per line, first column only (worker reads first column)
+  return numbers.map((n) => String(n ?? "").trim()).filter(Boolean).join("\n");
 }
 
 export async function POST(req: NextRequest) {
@@ -31,89 +28,61 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const lookupId = String(body.lookupId || "").trim();
-  const fileName = body.fileName ? String(body.fileName) : undefined;
-  const count = Number(body.count || 0);
+  const fileName = body.fileName ? String(body.fileName) : null;
   const createdAt = String(body.createdAt || new Date().toISOString());
-  const results = Array.isArray(body.results) ? body.results : [];
-  const isMock = Boolean(body.mock === true);
+  const numbers = Array.isArray(body.numbers) ? body.numbers : [];
+  const count = Number(body.count || numbers.length || 0);
 
   if (!lookupId) return NextResponse.json({ ok: false, error: "LOOKUP_ID_REQUIRED" }, { status: 400 });
+  if (!numbers.length) return NextResponse.json({ ok: false, error: "NO_NUMBERS" }, { status: 400 });
 
   const ref = adminDb.collection("hlrLookups").doc(lookupId);
 
-  // Create/update doc + auto-queue if status not set yet
+  // Write doc + set queued only if status not already set
   await adminDb.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const existing = snap.exists ? (snap.data() as any) : null;
 
     const payload: any = {
       userId: uid,
-      fileName: fileName || null,
+      fileName,
       count,
       createdAt,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // Only set status if it doesn't already exist (so we don't reset completed jobs)
     if (!existing?.status) {
       payload.status = "queued";
       payload.processed = 0;
-      payload.total = count || 0;
+      payload.total = count || numbers.length || 0;
     }
 
     tx.set(ref, payload, { merge: true });
   });
 
-  // If results array is large, store as a CSV in Cloud Storage and save path in Firestore
-  if (results.length > 0) {
-    try {
-      const csv = resultsToCsv(results);
-      const bucketName = process.env.FIREBASE_STORAGE_BUCKET || (admin.apps?.[0]?.options as any)?.storageBucket;
-      if (!bucketName) {
-        // fallback: write to subcollection if no storage bucket configured
-        const batch = adminDb.batch();
-        for (const r of results) {
-          const docRef = ref.collection("results").doc();
-          batch.set(docRef, r);
-        }
-        await batch.commit();
-        if (isMock) {
-          await ref.set({ mock: true }, { merge: true });
-        }
-      } else {
-        // upload CSV to storage
-        const destPath = `hlr/${uid}/${lookupId}.csv`;
-        const bucket = admin.storage().bucket(bucketName);
-        const file = bucket.file(destPath);
-        await file.save(Buffer.from(csv, "utf8"), { contentType: "text/csv" });
+  // Upload INPUT numbers CSV (worker reads this)
+  const csv = numbersToCsv(numbers);
 
-        // Don't touch status here (worker handles processing/completed)
-        await ref.set(
-          {
-            storagePath: destPath,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            ...(isMock ? { mock: true } : {}),
-          },
-          { merge: true }
-        );
-      }
-    } catch (e) {
-      // best-effort: if something fails, fallback to storing documents
-      try {
-        const batch = adminDb.batch();
-        for (const r of results) {
-          const docRef = ref.collection("results").doc();
-          batch.set(docRef, r);
-        }
-        await batch.commit();
-        if (isMock) {
-          await ref.set({ mock: true }, { merge: true });
-        }
-      } catch (e2) {
-        console.warn("Failed to persist HLR results", e2);
-      }
-    }
+  const bucketName =
+    process.env.FIREBASE_STORAGE_BUCKET || (admin.apps?.[0]?.options as any)?.storageBucket;
+
+  if (!bucketName) {
+    return NextResponse.json({ ok: false, error: "NO_STORAGE_BUCKET" }, { status: 500 });
   }
+
+  const destPath = `hlr/${uid}/${lookupId}.csv`;
+  const bucket = admin.storage().bucket(bucketName);
+  const file = bucket.file(destPath);
+
+  await file.save(Buffer.from(csv, "utf8"), { contentType: "text/csv; charset=utf-8" });
+
+  await ref.set(
+    {
+      storagePath: destPath,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
 
   return NextResponse.json({ ok: true, lookupId });
 }

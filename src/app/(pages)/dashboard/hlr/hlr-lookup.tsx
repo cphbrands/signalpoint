@@ -16,7 +16,16 @@ type HlrResult = {
   note?: string;
 };
 
-type HistoryItem = { id: string; createdAt: string; count: number; fileName?: string; status?: string; processed?: number; total?: number };
+type HistoryItem = {
+  id: string;
+  createdAt: string;
+  count: number;
+  fileName?: string;
+  status?: string;
+  processed?: number;
+  total?: number;
+};
+
 function extractNumbers(text: string) {
   const matches = text.match(/\d{8,}/g) ?? [];
   const cleaned = matches.map((x) => x.replace(/[^\d]/g, "")).filter(Boolean);
@@ -40,20 +49,22 @@ async function safeJson(res: Response) {
   return { error: (await res.text()).slice(0, 300) };
 }
 
-
-function csvKeyFor(id: string) {
-  return `hlr_csv_${id}`;
-}
-
 function toCsv(rows: HlrResult[]) {
-  const header = ["number","status","country","network","mccmnc","ported","note"];
-  const esc = (v: any) => `"${String(v ?? "").replace(/"/g,'""')}"`;
+  const header = ["number", "status", "country", "network", "mccmnc", "ported", "note"];
+  const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   return [
     header.join(","),
-    ...rows.map(r => [
-      esc(r.number), esc(r.status), esc(r.country), esc(r.network), esc(r.mccmnc),
-      esc(r.ported ? "yes" : "no"), esc(r.note),
-    ].join(",")),
+    ...rows.map((r) =>
+      [
+        esc(r.number),
+        esc(r.status),
+        esc(r.country),
+        esc(r.network),
+        esc(r.mccmnc),
+        esc(r.ported ? "yes" : "no"),
+        esc(r.note),
+      ].join(",")
+    ),
   ].join("\n");
 }
 
@@ -61,7 +72,9 @@ function download(name: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = name; a.click();
+  a.href = url;
+  a.download = name;
+  a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -76,10 +89,12 @@ export default function HlrLookup() {
     uniqueValid: 0,
     duplicates: 0,
   });
+
+  // We no longer show results inline; we download CSV instead
   const [results, setResults] = useState<HlrResult[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [err, setErr] = useState<string | null>(null);
-  // fetch server-side history from Firestore for logged in user
+
   async function fetchHistoryFromServer() {
     try {
       if (!auth.currentUser) return;
@@ -94,39 +109,39 @@ export default function HlrLookup() {
       const normDate = (v: any) => {
         if (!v) return "";
         if (typeof v === "string") return v;
-        // admin Timestamp bliver ofte serialiseret som {_seconds,_nanoseconds}
-        if (typeof v === "object" && typeof v._seconds === "number") {
-          return new Date(v._seconds * 1000).toISOString();
-        }
+        if (typeof v === "object" && typeof v._seconds === "number") return new Date(v._seconds * 1000).toISOString();
         return String(v);
       };
 
-      setHistory(items.map((it) => ({
-        id: String(it.id),
-        createdAt: normDate(it.createdAt),
-        count: Number(it.count || 0),
-        fileName: it.fileName ?? undefined,
-        status: it.status ?? undefined,
-        processed: typeof it.processed === "number" ? it.processed : undefined,
-        total: typeof it.total === "number" ? it.total : undefined,
-      })));
+      setHistory(
+        items.map((it) => ({
+          id: String(it.id),
+          createdAt: normDate(it.createdAt),
+          count: Number(it.count || 0),
+          fileName: it.fileName ?? undefined,
+          status: it.status ?? undefined,
+          processed: typeof it.processed === "number" ? it.processed : undefined,
+          total: typeof it.total === "number" ? it.total : undefined,
+        }))
+      );
     } catch (e) {
       console.warn("Could not fetch HLR history from server", e);
     }
-  }
-
   }
 
   useEffect(() => {
     void fetchHistoryFromServer();
   }, []);
 
-  const counts = useMemo(() => ({
-    active: results.filter(r => r.status === "active").length,
-    inactive: results.filter(r => r.status === "inactive").length,
-    unknown: results.filter(r => r.status === "unknown").length,
-    error: results.filter(r => r.status === "error").length,
-  }), [results]);
+  const counts = useMemo(
+    () => ({
+      active: results.filter((r) => r.status === "active").length,
+      inactive: results.filter((r) => r.status === "inactive").length,
+      unknown: results.filter((r) => r.status === "unknown").length,
+      error: results.filter((r) => r.status === "error").length,
+    }),
+    [results]
+  );
 
   async function onUpload(file: File) {
     setErr(null);
@@ -139,52 +154,39 @@ export default function HlrLookup() {
     setNums(s.unique);
     setStats({ totalFound: s.totalFound, uniqueValid: s.uniqueValid, duplicates: s.duplicates });
 
-    if (s.uniqueValid === 0) {
-      setErr("No valid numbers found in the CSV (need at least 8 digits).");
-    }
+    if (s.uniqueValid === 0) setErr("No valid numbers found in the CSV (need at least 8 digits).");
   }
 
   async function run() {
-    setBusy(true); setErr(null); setResults([]);
+    setBusy(true);
+    setErr(null);
+    setResults([]);
+
     try {
       if (nums.length === 0) throw new Error("Please upload a CSV first.");
+      if (!auth.currentUser) throw new Error("Please log in.");
 
-      const res = await fetch("/api/hlr/run", {
+      const lookupId = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+      const token = await auth.currentUser.getIdToken();
+
+      const res = await fetch("/api/hlr/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ numbers: nums }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          lookupId,
+          fileName,
+          count: nums.length,
+          createdAt,
+          numbers: nums,
+        }),
       });
+
       const data = await safeJson(res);
-      if (!res.ok) throw new Error((data as any)?.error ?? "HLR failed");
+      if (!res.ok) throw new Error((data as any)?.error ?? "Failed to queue HLR job");
 
-      const out: HlrResult[] = (data as any)?.results ?? [];
-      setResults(out);
-
-      const item: HistoryItem = {
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        count: nums.length,
-        fileName: fileName ?? undefined,
-      };
-      const next = [item, ...loadHistory()];
-      saveHistory(next);
-      setHistory(next.slice(0, 20));
-
-      // try saving to Firestore via server endpoint
-      try {
-        const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
-        if (token) {
-          await fetch("/api/hlr/save", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ lookupId: item.id, fileName: item.fileName, count: item.count, createdAt: item.createdAt, results: out }),
-          });
-          // refresh server history
-          void fetchHistoryFromServer();
-        }
-      } catch (e) {
-        console.warn("Failed to save HLR results to server", e);
-      }
+      // refresh history (Firestore)
+      void fetchHistoryFromServer();
     } catch (e: any) {
       setErr(e?.message ?? "Unknown error");
     } finally {
@@ -192,26 +194,14 @@ export default function HlrLookup() {
     }
   }
 
-  async function clearAll() {
-    setFileName(null);
-    setNums([]);
-    setStats({ totalFound: 0, uniqueValid: 0, duplicates: 0 });
-    setResults([]);
-    setErr(null);
-    // remove local history and ask server for refreshed state
-    try {
-      saveHistory([]);
-      setHistory([]);
-      void fetchHistoryFromServer();
-    } catch {}
-  }
-
   return (
     <div className="w-full space-y-6">
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Why run HLR before a campaign?</CardTitle>
-          <CardDescription>Running an HLR check helps you avoid wasted sends and improves campaign performance. CSV exports are stored for 7 days and then automatically deleted.</CardDescription>
+          <CardDescription>
+            Running an HLR check helps you avoid wasted sends and improves campaign performance. CSV exports are stored for 7 days and then automatically deleted.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="list-disc ml-5 space-y-2 text-sm">
@@ -223,7 +213,7 @@ export default function HlrLookup() {
           </ul>
         </CardContent>
       </Card>
-      {/* Hidden-but-clickable input (sr-only is safer than hidden) */}
+
       <input
         ref={fileRef}
         type="file"
@@ -249,7 +239,7 @@ export default function HlrLookup() {
             </Button>
 
             <Button onClick={run} disabled={busy || nums.length === 0}>
-              {busy ? "Running..." : "Run HLR"}
+              {busy ? "Queueing..." : "Run HLR"}
             </Button>
           </div>
         </CardHeader>
@@ -277,6 +267,7 @@ export default function HlrLookup() {
             <CardTitle>Results</CardTitle>
             <CardDescription>Results are not shown here for privacy — export a CSV to view them.</CardDescription>
           </div>
+
           <div className="flex flex-wrap gap-2 items-center">
             <Button
               variant="secondary"
@@ -297,13 +288,7 @@ export default function HlrLookup() {
                   if (!resp.ok) return;
 
                   const url = data?.downloadUrl || data?.resultSignedUrl;
-                  const isMock = Boolean(data?.lookup?.mock === true);
                   if (url) {
-                    if (isMock) {
-                      // warn user and open URL
-                      console.warn("Downloading mock HLR CSV (mock data)");
-                      alert("Warning: this export contains mock HLR data (test).\nThe downloaded CSV will be mock data.");
-                    }
                     const a = document.createElement("a");
                     a.href = url;
                     a.target = "_blank";
@@ -314,11 +299,9 @@ export default function HlrLookup() {
 
                   const rows = (data?.results || []) as HlrResult[];
                   if (!rows.length) return;
-                  const csv = toCsv(rows);
-                  const prefix = isMock ? "MOCK-" : "";
-                  download(`${prefix}hlr-${latest.fileName ?? latest.id}-${Date.parse(latest.createdAt)}.csv`, csv, "text/csv;charset=utf-8");
+                  download(`hlr-${latest.fileName ?? latest.id}-${Date.parse(latest.createdAt)}.csv`, toCsv(rows), "text/csv;charset=utf-8");
                 } catch (e) {
-                  console.warn("Failed to export CSV from server", e);
+                  console.warn("Failed to export CSV", e);
                 }
               }}
               disabled={history.length === 0}
@@ -329,77 +312,84 @@ export default function HlrLookup() {
         </CardHeader>
 
         <CardContent className="space-y-2">
-          <div className="text-sm text-muted-foreground">Results are only available via CSV export. Use the "Export CSV" button when a run completes.</div>
+          <div className="text-sm text-muted-foreground">
+            When a run completes, use “Export CSV” or “Download CSV” from history.
+          </div>
         </CardContent>
       </Card>
 
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Last 20 Lookups</CardTitle>
-          <CardDescription>Recent lookups.</CardDescription>
+          <CardDescription>Recent lookups from Firestore.</CardDescription>
         </CardHeader>
+
         <CardContent className="space-y-2">
-            {history.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No history yet. Upload a CSV and run HLR.</div>
-            ) : (
-              history.slice(0, 20).map((h) => {
-                return (
-                  <div key={h.id} className="flex items-center justify-between rounded-lg border bg-muted/10 p-3">
-                    <div className="text-sm">
-                      <div className="font-medium">{h.fileName ?? "Lookup"}</div>
-                      <div className="text-xs text-muted-foreground">{h.createdAt} • {h.count} numbers</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={async () => {
-                          try {
-                            if (!auth.currentUser) return;
-                            const token = await auth.currentUser.getIdToken();
-                            const resp = await fetch("/api/hlr/status", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                              body: JSON.stringify({ lookupId: h.id }),
-                            });
-                            const data = await resp.json().catch(() => ({}));
-                            if (!resp.ok) return;
+          {history.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No history yet. Upload a CSV and run HLR.</div>
+          ) : (
+            history.slice(0, 20).map((h) => {
+              const status = (h.status || "unknown").toLowerCase();
+              const progress =
+                typeof h.processed === "number" && typeof h.total === "number" && h.total > 0
+                  ? `${h.processed}/${h.total}`
+                  : null;
 
-                            // Prefer fresh signed URL from server (worker writes resultStoragePath/resultSignedUrl)
-                            const url = data?.downloadUrl || data?.resultSignedUrl;
-                            const isMock = Boolean(data?.lookup?.mock === true);
-                            if (url) {
-                              if (isMock) {
-                                console.warn("Downloading mock HLR CSV (mock data)");
-                                alert("Warning: this export contains mock HLR data (test).\nThe downloaded CSV will be mock data.");
-                              }
-                              const a = document.createElement("a");
-                              a.href = url;
-                              a.target = "_blank";
-                              a.rel = "noopener noreferrer";
-                              a.click();
-                              return;
-                            }
-
-                            // Fallback (if server returned rows)
-                            const rows = (data?.results || []) as HlrResult[];
-                            if (!rows.length) return;
-                            const csv = toCsv(rows);
-                            const prefix = isMock ? "MOCK-" : "";
-                            download(`${prefix}hlr-${h.fileName ?? h.id}-${Date.parse(h.createdAt)}.csv`, csv, "text/csv;charset=utf-8");
-                          } catch (e) {
-                            console.warn("Failed to download CSV from server", e);
-                          }
-                        }}
-                      >
-                        Download CSV
-                      </Button>
-                      <Badge variant="outline">done</Badge>
+              return (
+                <div key={h.id} className="flex items-center justify-between rounded-lg border bg-muted/10 p-3">
+                  <div className="text-sm">
+                    <div className="font-medium">{h.fileName ?? "Lookup"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {h.createdAt} • {h.count} numbers {progress ? `• ${progress}` : ""}
                     </div>
                   </div>
-                );
-              })
-            )}
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={async () => {
+                        try {
+                          if (!auth.currentUser) return;
+                          const token = await auth.currentUser.getIdToken();
+
+                          const resp = await fetch("/api/hlr/status", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ lookupId: h.id }),
+                          });
+
+                          const data = await resp.json().catch(() => ({}));
+                          if (!resp.ok) return;
+
+                          const url = data?.downloadUrl || data?.resultSignedUrl;
+                          if (url) {
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.target = "_blank";
+                            a.rel = "noopener noreferrer";
+                            a.click();
+                            return;
+                          }
+
+                          const rows = (data?.results || []) as HlrResult[];
+                          if (!rows.length) return;
+                          download(`hlr-${h.fileName ?? h.id}-${Date.parse(h.createdAt)}.csv`, toCsv(rows), "text/csv;charset=utf-8");
+                        } catch (e) {
+                          console.warn("Failed to download CSV", e);
+                        }
+                      }}
+                      disabled={status !== "completed"}
+                    >
+                      Download CSV
+                    </Button>
+
+                    <Badge variant="outline">{status}</Badge>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </CardContent>
       </Card>
     </div>
