@@ -49,33 +49,12 @@ async function safeJson(res: Response) {
   return { error: (await res.text()).slice(0, 300) };
 }
 
-function toCsv(rows: HlrResult[]) {
-  const header = ["number", "status", "country", "network", "mccmnc", "ported", "note"];
-  const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  return [
-    header.join(","),
-    ...rows.map((r) =>
-      [
-        esc(r.number),
-        esc(r.status),
-        esc(r.country),
-        esc(r.network),
-        esc(r.mccmnc),
-        esc(r.ported ? "yes" : "no"),
-        esc(r.note),
-      ].join(",")
-    ),
-  ].join("\n");
-}
-
-function download(name: string, content: string, mime: string) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
+function downloadFromUrl(url: string) {
   const a = document.createElement("a");
   a.href = url;
-  a.download = name;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
   a.click();
-  URL.revokeObjectURL(url);
 }
 
 export default function HlrLookup() {
@@ -90,7 +69,7 @@ export default function HlrLookup() {
     duplicates: 0,
   });
 
-  // We no longer show results inline; we download CSV instead
+  // UI no longer uses inline results; downloads via history/status
   const [results, setResults] = useState<HlrResult[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -100,9 +79,8 @@ export default function HlrLookup() {
       if (!auth.currentUser) return;
       const token = await auth.currentUser.getIdToken();
       const res = await fetch(`/api/hlr/list`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) return;
       const data = await res.json().catch(() => ({}));
-      if (!data?.ok) return;
+      if (!res.ok || !data?.ok) return;
 
       const items = (data.items || []) as any[];
 
@@ -133,14 +111,16 @@ export default function HlrLookup() {
     void fetchHistoryFromServer();
   }, []);
 
-  // auto-refresh while there are running jobs
+  // Auto-refresh while running
   useEffect(() => {
-    const hasRunning = history.some(h => {
-      const st = String((h as any).status || "").toLowerCase();
-      return st && st !== "completed" && st !== "failed";
+    const hasRunning = history.some((h) => {
+      const st = String(h.status || "").toLowerCase();
+      return st === "queued" || st === "processing";
     });
     if (!hasRunning) return;
-    const t = setInterval(() => { void fetchHistoryFromServer(); }, 5000);
+    const t = setInterval(() => {
+      void fetchHistoryFromServer();
+    }, 3000);
     return () => clearInterval(t);
   }, [history]);
 
@@ -168,6 +148,7 @@ export default function HlrLookup() {
     if (s.uniqueValid === 0) setErr("No valid numbers found in the CSV (need at least 8 digits).");
   }
 
+  // ✅ THIS is the “punkt 4” fix: Save (uploads INPUT CSV) → Run (queues worker) → refresh history
   async function run() {
     setBusy(true);
     setErr(null);
@@ -181,9 +162,10 @@ export default function HlrLookup() {
       const createdAt = new Date().toISOString();
       const token = await auth.currentUser.getIdToken();
 
-      const res = await fetch("/api/hlr/save", {
+      // 1) Save job + upload INPUT CSV for worker
+      const resSave = await fetch("/api/hlr/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({
           lookupId,
           fileName,
@@ -193,15 +175,45 @@ export default function HlrLookup() {
         }),
       });
 
-      const data = await safeJson(res);
-      if (!res.ok) throw new Error((data as any)?.error ?? "Failed to queue HLR job");
+      const dataSave = await safeJson(resSave);
+      if (!resSave.ok) throw new Error((dataSave as any)?.error ?? "Failed to save HLR job");
 
-      // refresh history (Firestore)
+      // 2) Queue job for VPS worker
+      const resRun = await fetch("/api/hlr/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ lookupId }),
+      });
+
+      const dataRun = await safeJson(resRun);
+      if (!resRun.ok) throw new Error((dataRun as any)?.error ?? "Failed to queue HLR job");
+
       void fetchHistoryFromServer();
     } catch (e: any) {
       setErr(e?.message ?? "Unknown error");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function downloadLookup(id: string) {
+    try {
+      if (!auth.currentUser) return;
+      const token = await auth.currentUser.getIdToken();
+
+      const resp = await fetch("/api/hlr/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ lookupId: id }),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) return;
+
+      const url = data?.downloadUrl || data?.resultSignedUrl;
+      if (url) downloadFromUrl(url);
+    } catch (e) {
+      console.warn("Download failed", e);
     }
   }
 
@@ -217,10 +229,10 @@ export default function HlrLookup() {
         <CardContent>
           <ul className="list-disc ml-5 space-y-2 text-sm">
             <li>Reduce wasted credits: avoid sending to inactive or unreachable numbers.</li>
-            <li>Improve deliverability: remove numbers that are inactive, ported or blocked before sending.</li>
+            <li>Improve deliverability: remove inactive/ported/blocked numbers before sending.</li>
             <li>Lower costs: fewer failed attempts and carrier rejections saves money.</li>
             <li>Cleaner reporting: campaign metrics reflect only valid targets.</li>
-            <li>Compliance & reputation: keep sending lists healthy to reduce carrier filtering and protect sender reputation.</li>
+            <li>Compliance & reputation: healthier lists reduce filtering and protect sender reputation.</li>
           </ul>
         </CardContent>
       </Card>
@@ -273,25 +285,6 @@ export default function HlrLookup() {
       </Card>
 
       <Card className="w-full">
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle>Results</CardTitle>
-            <CardDescription>Results are not shown here for privacy — export a CSV to view them.</CardDescription>
-          </div>
-
-          <div className="flex flex-wrap gap-2 items-center">
-              {/* Export button removed from Results header per request; downloads remain available per-history. */}
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-2">
-          <div className="text-sm text-muted-foreground">
-            When a run completes, use “Export CSV” or “Download CSV” from history.
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="w-full">
         <CardHeader>
           <CardTitle>Last 20 Lookups</CardTitle>
           <CardDescription>Recent lookups from Firestore.</CardDescription>
@@ -303,62 +296,42 @@ export default function HlrLookup() {
           ) : (
             history.slice(0, 20).map((h) => {
               const status = (h.status || "unknown").toLowerCase();
-              const progress =
-                typeof h.processed === "number" && typeof h.total === "number" && h.total > 0
-                  ? `${h.processed}/${h.total}`
-                  : null;
+              const total = typeof h.total === "number" ? h.total : 0;
+              const processed = typeof h.processed === "number" ? h.processed : 0;
+              const pct = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
 
               return (
-                <div key={h.id} className="flex items-center justify-between rounded-lg border bg-muted/10 p-3">
-                  <div className="text-sm">
-                    <div className="font-medium">{h.fileName ?? "Lookup"}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {h.createdAt} • {h.count} numbers {progress ? `• ${progress}` : ""}
+                <div key={h.id} className="rounded-lg border bg-muted/10 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm">
+                      <div className="font-medium">{h.fileName ?? "Lookup"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {h.createdAt} • {h.count} numbers
+                        {status === "processing" || status === "queued" ? ` • ${processed}/${total}` : ""}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => void downloadLookup(h.id)}
+                        disabled={status !== "completed"}
+                      >
+                        Download CSV
+                      </Button>
+                      <Badge variant="outline">{status}</Badge>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={async () => {
-                        try {
-                          if (!auth.currentUser) return;
-                          const token = await auth.currentUser.getIdToken();
-
-                          const resp = await fetch("/api/hlr/status", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ lookupId: h.id }),
-                          });
-
-                          const data = await resp.json().catch(() => ({}));
-                          if (!resp.ok) return;
-
-                          const url = data?.downloadUrl || data?.resultSignedUrl;
-                          if (url) {
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.target = "_blank";
-                            a.rel = "noopener noreferrer";
-                            a.click();
-                            return;
-                          }
-
-                          const rows = (data?.results || []) as HlrResult[];
-                          if (!rows.length) return;
-                          download(`hlr-${h.fileName ?? h.id}-${Date.parse(h.createdAt)}.csv`, toCsv(rows), "text/csv;charset=utf-8");
-                        } catch (e) {
-                          console.warn("Failed to download CSV", e);
-                        }
-                      }}
-                      disabled={status !== "completed"}
-                    >
-                      Download CSV
-                    </Button>
-
-                    <Badge variant="outline">{status}</Badge>
-                  </div>
+                  {(status === "processing" || status === "queued") && total > 0 && (
+                    <div className="mt-3">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                        <div className="h-2 rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">{pct}%</div>
+                    </div>
+                  )}
                 </div>
               );
             })

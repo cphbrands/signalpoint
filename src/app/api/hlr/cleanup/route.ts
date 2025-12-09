@@ -25,11 +25,10 @@ export async function POST(req: NextRequest) {
     try {
       const data = doc.data();
       // delete storage CSV if present
-      if (data.storagePath && bucket) {
-        try {
-          await bucket.file(String(data.storagePath)).delete();
-        } catch (e) {
-          // ignore missing files
+      if (bucket) {
+        const paths = [data.storagePath, data.resultStoragePath].filter(Boolean);
+        for (const p of paths) {
+          try { await bucket.file(String(p)).delete(); } catch (e) {}
         }
       }
 

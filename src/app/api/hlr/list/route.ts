@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     const snap = await adminDb
       .collection("hlrLookups")
       .where("userId", "==", uid)
-      .orderBy("createdAt", "desc") // skift til createdAtTs hvis du har lavet det felt
+      .orderBy("createdAtTs","desc") // skift til createdAtTs hvis du har lavet det felt
       .limit(20)
       .get();
 
