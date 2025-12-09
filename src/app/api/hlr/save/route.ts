@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
   const count = Number(body.count || 0);
   const createdAt = String(body.createdAt || new Date().toISOString());
   const results = Array.isArray(body.results) ? body.results : [];
+  const isMock = Boolean(body.mock === true);
 
   if (!lookupId) return NextResponse.json({ ok: false, error: "LOOKUP_ID_REQUIRED" }, { status: 400 });
 
@@ -76,6 +77,9 @@ export async function POST(req: NextRequest) {
           batch.set(docRef, r);
         }
         await batch.commit();
+        if (isMock) {
+          await ref.set({ mock: true }, { merge: true });
+        }
       } else {
         // upload CSV to storage
         const destPath = `hlr/${uid}/${lookupId}.csv`;
@@ -88,6 +92,7 @@ export async function POST(req: NextRequest) {
           {
             storagePath: destPath,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            ...(isMock ? { mock: true } : {}),
           },
           { merge: true }
         );
@@ -101,6 +106,9 @@ export async function POST(req: NextRequest) {
           batch.set(docRef, r);
         }
         await batch.commit();
+        if (isMock) {
+          await ref.set({ mock: true }, { merge: true });
+        }
       } catch (e2) {
         console.warn("Failed to persist HLR results", e2);
       }

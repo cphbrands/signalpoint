@@ -292,7 +292,13 @@ export default function HlrLookup() {
                   if (!resp.ok) return;
 
                   const url = data?.downloadUrl || data?.resultSignedUrl;
+                  const isMock = Boolean(data?.lookup?.mock === true);
                   if (url) {
+                    if (isMock) {
+                      // warn user and open URL
+                      console.warn("Downloading mock HLR CSV (mock data)");
+                      alert("Warning: this export contains mock HLR data (test).\nThe downloaded CSV will be mock data.");
+                    }
                     const a = document.createElement("a");
                     a.href = url;
                     a.target = "_blank";
@@ -304,7 +310,8 @@ export default function HlrLookup() {
                   const rows = (data?.results || []) as HlrResult[];
                   if (!rows.length) return;
                   const csv = toCsv(rows);
-                  download(`hlr-${latest.fileName ?? latest.id}-${Date.parse(latest.createdAt)}.csv`, csv, "text/csv;charset=utf-8");
+                  const prefix = isMock ? "MOCK-" : "";
+                  download(`${prefix}hlr-${latest.fileName ?? latest.id}-${Date.parse(latest.createdAt)}.csv`, csv, "text/csv;charset=utf-8");
                 } catch (e) {
                   console.warn("Failed to export CSV from server", e);
                 }
@@ -324,7 +331,7 @@ export default function HlrLookup() {
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Last 20 Lookups</CardTitle>
-          <CardDescription>Stored locally in your browser (localStorage).</CardDescription>
+          <CardDescription>Recent lookups.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
             {history.length === 0 ? (
@@ -355,7 +362,12 @@ export default function HlrLookup() {
 
                             // Prefer fresh signed URL from server (worker writes resultStoragePath/resultSignedUrl)
                             const url = data?.downloadUrl || data?.resultSignedUrl;
+                            const isMock = Boolean(data?.lookup?.mock === true);
                             if (url) {
+                              if (isMock) {
+                                console.warn("Downloading mock HLR CSV (mock data)");
+                                alert("Warning: this export contains mock HLR data (test).\nThe downloaded CSV will be mock data.");
+                              }
                               const a = document.createElement("a");
                               a.href = url;
                               a.target = "_blank";
@@ -368,7 +380,8 @@ export default function HlrLookup() {
                             const rows = (data?.results || []) as HlrResult[];
                             if (!rows.length) return;
                             const csv = toCsv(rows);
-                            download(`hlr-${h.fileName ?? h.id}-${Date.parse(h.createdAt)}.csv`, csv, "text/csv;charset=utf-8");
+                            const prefix = isMock ? "MOCK-" : "";
+                            download(`${prefix}hlr-${h.fileName ?? h.id}-${Date.parse(h.createdAt)}.csv`, csv, "text/csv;charset=utf-8");
                           } catch (e) {
                             console.warn("Failed to download CSV from server", e);
                           }

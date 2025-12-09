@@ -17,12 +17,11 @@ async function getUid(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const uid = await getUid(req);
   if (!uid) return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const lookupId = String(body.lookupId || "").trim();
+  const lookupId = req.nextUrl.searchParams.get("lookupId")?.trim();
   if (!lookupId) return NextResponse.json({ ok: false, error: "LOOKUP_ID_REQUIRED" }, { status: 400 });
 
   const ref = adminDb.collection("hlrLookups").doc(lookupId);
@@ -30,21 +29,33 @@ export async function POST(req: NextRequest) {
   if (!snap.exists) return NextResponse.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });
 
   const data = snap.data() as any;
+
   if (String(data.userId || "") !== uid) {
     return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
   }
 
-  // Queue job for VPS worker
-  await ref.set(
-    {
-      status: "queued",
-      processed: 0,
-      total: Number(data.count || 0),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    },
-    { merge: true }
-  );
+  const status = String(data.status || "");
+  const resultPath = data.resultStoragePath || null;
 
-  // Keep response shape stable for UI
-  return NextResponse.json({ ok: true, results: [], mock: false, lookupId });
+  if (status !== "completed" || !resultPath) {
+    return NextResponse.json({ ok: false, error: "NOT_READY", status }, { status: 409 });
+  }
+
+  const bucketName =
+    process.env.FIREBASE_STORAGE_BUCKET || (admin.apps?.[0]?.options as any)?.storageBucket;
+
+  if (!bucketName) {
+    return NextResponse.json({ ok: false, error: "NO_STORAGE_BUCKET" }, { status: 500 });
+  }
+
+  const bucket = admin.storage().bucket(bucketName);
+  const file = bucket.file(String(resultPath));
+
+  // Lav en frisk URL hver gang (10 min)
+  const [url] = await file.getSignedUrl({
+    action: "read",
+    expires: Date.now() + 10 * 60 * 1000,
+  });
+
+  return NextResponse.json({ ok: true, url });
 }
