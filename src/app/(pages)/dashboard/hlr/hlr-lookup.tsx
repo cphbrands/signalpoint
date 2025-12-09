@@ -275,8 +275,41 @@ export default function HlrLookup() {
           <div className="flex flex-wrap gap-2 items-center">
             <Button
               variant="secondary"
-              onClick={() => download(`hlr-results-${Date.now()}.csv`, toCsv(results), "text/csv;charset=utf-8")}
-              disabled={results.length === 0}
+              onClick={async () => {
+                try {
+                  const latest = history?.[0];
+                  if (!latest) return;
+                  if (!auth.currentUser) return;
+                  const token = await auth.currentUser.getIdToken();
+
+                  const resp = await fetch("/api/hlr/status", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ lookupId: latest.id }),
+                  });
+
+                  const data = await resp.json().catch(() => ({}));
+                  if (!resp.ok) return;
+
+                  const url = data?.downloadUrl || data?.resultSignedUrl;
+                  if (url) {
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.target = "_blank";
+                    a.rel = "noopener noreferrer";
+                    a.click();
+                    return;
+                  }
+
+                  const rows = (data?.results || []) as HlrResult[];
+                  if (!rows.length) return;
+                  const csv = toCsv(rows);
+                  download(`hlr-${latest.fileName ?? latest.id}-${Date.parse(latest.createdAt)}.csv`, csv, "text/csv;charset=utf-8");
+                } catch (e) {
+                  console.warn("Failed to export CSV from server", e);
+                }
+              }}
+              disabled={history.length === 0}
             >
               Export CSV
             </Button>
@@ -317,18 +350,23 @@ export default function HlrLookup() {
                               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                               body: JSON.stringify({ lookupId: h.id }),
                             });
+                            const data = await resp.json().catch(() => ({}));
                             if (!resp.ok) return;
-                            const data = await resp.json();
-                            // If server returned a signed download URL (for large exports), use it
-                            if (data?.downloadUrl) {
+
+                            // Prefer fresh signed URL from server (worker writes resultStoragePath/resultSignedUrl)
+                            const url = data?.downloadUrl || data?.resultSignedUrl;
+                            if (url) {
                               const a = document.createElement("a");
-                              a.href = data.downloadUrl;
+                              a.href = url;
                               a.target = "_blank";
                               a.rel = "noopener noreferrer";
                               a.click();
                               return;
                             }
+
+                            // Fallback (if server returned rows)
                             const rows = (data?.results || []) as HlrResult[];
+                            if (!rows.length) return;
                             const csv = toCsv(rows);
                             download(`hlr-${h.fileName ?? h.id}-${Date.parse(h.createdAt)}.csv`, csv, "text/csv;charset=utf-8");
                           } catch (e) {
