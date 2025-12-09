@@ -133,6 +133,17 @@ export default function HlrLookup() {
     void fetchHistoryFromServer();
   }, []);
 
+  // auto-refresh while there are running jobs
+  useEffect(() => {
+    const hasRunning = history.some(h => {
+      const st = String((h as any).status || "").toLowerCase();
+      return st && st !== "completed" && st !== "failed";
+    });
+    if (!hasRunning) return;
+    const t = setInterval(() => { void fetchHistoryFromServer(); }, 5000);
+    return () => clearInterval(t);
+  }, [history]);
+
   const counts = useMemo(
     () => ({
       active: results.filter((r) => r.status === "active").length,

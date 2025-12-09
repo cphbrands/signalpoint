@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const snap = await adminDb
     .collection("hlrLookups")
     .where("userId", "==", uid)
-    .orderBy("createdAt", "desc")
+    .orderBy("createdAtTs", "desc")
     .limit(20)
     .get();
 

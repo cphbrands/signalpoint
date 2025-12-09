@@ -48,6 +48,8 @@ export async function POST(req: NextRequest) {
       fileName,
       count,
       createdAt,
+      createdAtTs: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
