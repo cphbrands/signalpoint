@@ -280,45 +280,7 @@ export default function HlrLookup() {
           </div>
 
           <div className="flex flex-wrap gap-2 items-center">
-            <Button
-              variant="secondary"
-              onClick={async () => {
-                try {
-                  const latest = history?.[0];
-                  if (!latest) return;
-                  if (!auth.currentUser) return;
-                  const token = await auth.currentUser.getIdToken();
-
-                  const resp = await fetch("/api/hlr/status", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ lookupId: latest.id }),
-                  });
-
-                  const data = await resp.json().catch(() => ({}));
-                  if (!resp.ok) return;
-
-                  const url = data?.downloadUrl || data?.resultSignedUrl;
-                  if (url) {
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.target = "_blank";
-                    a.rel = "noopener noreferrer";
-                    a.click();
-                    return;
-                  }
-
-                  const rows = (data?.results || []) as HlrResult[];
-                  if (!rows.length) return;
-                  download(`hlr-${latest.fileName ?? latest.id}-${Date.parse(latest.createdAt)}.csv`, toCsv(rows), "text/csv;charset=utf-8");
-                } catch (e) {
-                  console.warn("Failed to export CSV", e);
-                }
-              }}
-              disabled={history.length === 0}
-            >
-              Export CSV
-            </Button>
+              {/* Export button removed from Results header per request; downloads remain available per-history. */}
           </div>
         </CardHeader>
 
