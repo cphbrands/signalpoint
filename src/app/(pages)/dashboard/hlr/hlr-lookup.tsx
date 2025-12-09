@@ -16,9 +16,7 @@ type HlrResult = {
   note?: string;
 };
 
-type HistoryItem = { id: string; createdAt: string; count: number; fileName?: string };
-const HISTORY_KEY = "hlr_history_v1";
-
+type HistoryItem = { id: string; createdAt: string; count: number; fileName?: string; status?: string; processed?: number; total?: number };
 function extractNumbers(text: string) {
   const matches = text.match(/\d{8,}/g) ?? [];
   const cleaned = matches.map((x) => x.replace(/[^\d]/g, "")).filter(Boolean);
@@ -42,20 +40,6 @@ async function safeJson(res: Response) {
   return { error: (await res.text()).slice(0, 300) };
 }
 
-function loadHistory(): HistoryItem[] {
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveHistory(items: HistoryItem[]) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 20)));
-}
 
 function csvKeyFor(id: string) {
   return `hlr_csv_${id}`;
@@ -95,9 +79,6 @@ export default function HlrLookup() {
   const [results, setResults] = useState<HlrResult[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => { setHistory(loadHistory()); }, []);
-
   // fetch server-side history from Firestore for logged in user
   async function fetchHistoryFromServer() {
     try {
@@ -105,11 +86,35 @@ export default function HlrLookup() {
       const token = await auth.currentUser.getIdToken();
       const res = await fetch(`/api/hlr/list`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return;
-      const data = await res.json();
-      if (data?.ok) setHistory(data.items || []);
+      const data = await res.json().catch(() => ({}));
+      if (!data?.ok) return;
+
+      const items = (data.items || []) as any[];
+
+      const normDate = (v: any) => {
+        if (!v) return "";
+        if (typeof v === "string") return v;
+        // admin Timestamp bliver ofte serialiseret som {_seconds,_nanoseconds}
+        if (typeof v === "object" && typeof v._seconds === "number") {
+          return new Date(v._seconds * 1000).toISOString();
+        }
+        return String(v);
+      };
+
+      setHistory(items.map((it) => ({
+        id: String(it.id),
+        createdAt: normDate(it.createdAt),
+        count: Number(it.count || 0),
+        fileName: it.fileName ?? undefined,
+        status: it.status ?? undefined,
+        processed: typeof it.processed === "number" ? it.processed : undefined,
+        total: typeof it.total === "number" ? it.total : undefined,
+      })));
     } catch (e) {
       console.warn("Could not fetch HLR history from server", e);
     }
+  }
+
   }
 
   useEffect(() => {
