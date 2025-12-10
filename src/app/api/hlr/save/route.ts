@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
   const fileName = body.fileName ? String(body.fileName) : null;
   const createdAt = String(body.createdAt || new Date().toISOString());
   const numbers: string[] = Array.isArray(body.numbers) ? body.numbers : [];
+  const rawTotal = Number(body.rawTotal || 0);
 
   if (!lookupId) return NextResponse.json({ ok: false, error: "LOOKUP_ID_REQUIRED" }, { status: 400 });
   if (!numbers.length) return NextResponse.json({ ok: false, error: "NUMBERS_REQUIRED" }, { status: 400 });
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
       userId: uid,
       fileName,
       count: numbers.length,
+      rawTotal: rawTotal > 0 ? rawTotal : numbers.length,
       createdAt,
       createdAtTs: toCreatedAtTs(createdAt),
       storagePath: destPath, // INPUT FILE (worker reads this)

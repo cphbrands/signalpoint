@@ -24,6 +24,7 @@ type HistoryItem = {
   status?: string;
   processed?: number;
   total?: number;
+  rawTotal?: number;
 };
 
 function extractNumbers(text: string) {
@@ -107,6 +108,7 @@ export default function HlrLookup() {
           status: it.status ?? undefined,
           processed: typeof it.processed === "number" ? it.processed : undefined,
           total: typeof it.total === "number" ? it.total : undefined,
+          rawTotal: typeof it.rawTotal === "number" ? it.rawTotal : undefined,
         }))
       );
     } catch (e) {
@@ -177,6 +179,7 @@ export default function HlrLookup() {
           lookupId,
           fileName,
           count: nums.length,
+          rawTotal: stats.totalFound,
           createdAt,
           numbers: nums,
         }),
@@ -329,10 +332,10 @@ export default function HlrLookup() {
                     <div className="text-sm">
                       <div className="font-medium">{h.fileName ?? "Lookup"}</div>
                             <div className="text-xs text-muted-foreground">
-                              {h.createdAt} • {h.count} numbers
+                              {h.createdAt} • {(h.rawTotal ?? h.count)} numbers • {h.count} unique
                               {status === "processing" || status === "queued" ? ` • ${processed}/${total}` : ""}
                             </div>
-                            <div className="text-xs text-muted-foreground mt-1">{Math.ceil(((h.total ?? h.count) || 0) / LOOKUPS_PER_CREDIT)} credit{Math.ceil(((h.total ?? h.count) || 0) / LOOKUPS_PER_CREDIT) !== 1 ? "s" : ""} (1 credit / {LOOKUPS_PER_CREDIT} lookups)</div>
+                            <div className="text-xs text-muted-foreground mt-1">{Math.ceil(((h.rawTotal ?? h.total ?? h.count) || 0) / LOOKUPS_PER_CREDIT)} credit{Math.ceil(((h.rawTotal ?? h.total ?? h.count) || 0) / LOOKUPS_PER_CREDIT) !== 1 ? "s" : ""} (1 credit / {LOOKUPS_PER_CREDIT} lookups)</div>
                     </div>
 
                     <div className="flex items-center gap-2">
