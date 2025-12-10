@@ -9,7 +9,7 @@ export default function HlrPage() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold">HLR Lookup</h1>
           <p className="text-muted-foreground mt-1">
-            Validate phone numbers via CSV upload (processed by worker).
+            Check phone numbers active status via CSV upload
           </p>
         </div>
         <HlrLookup />

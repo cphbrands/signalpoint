@@ -69,6 +69,13 @@ export default function HlrLookup() {
     duplicates: 0,
   });
 
+  // Pricing rule: 2 lookups cost 1 credit
+  const LOOKUPS_PER_CREDIT = 2;
+  // Charge is based on ALL found numbers in the uploaded file (not only unique)
+  const estimatedCredits = Math.ceil(stats.totalFound / LOOKUPS_PER_CREDIT);
+  const PRICE_PER_LOOKUP_USD = 0.06; // $0.06 per lookup (per number)
+  const estimatedDollars = stats.totalFound * PRICE_PER_LOOKUP_USD;
+
   // UI no longer uses inline results; downloads via history/status
   const [results, setResults] = useState<HlrResult[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -237,6 +244,21 @@ export default function HlrLookup() {
         </CardContent>
       </Card>
 
+      <Card className="w-full border-2 border-primary/20">
+        <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="text-2xl font-bold">1 credit = 2 numbers</div>
+            <div className="text-lg mt-1">1000 numbers = 500 credits</div>
+            <div className="text-lg mt-1">Price per lookup: ${PRICE_PER_LOOKUP_USD.toFixed(2)} (per number)</div>
+          </div>
+
+          <div className="text-right">
+            <div className="text-2xl font-extrabold">Estimated: {estimatedCredits} credit{estimatedCredits !== 1 ? "s" : ""}</div>
+            <div className="text-sm text-muted-foreground">≈ ${estimatedDollars.toFixed(2)}</div>
+          </div>
+        </CardContent>
+      </Card>
+
       <input
         ref={fileRef}
         type="file"
@@ -273,6 +295,7 @@ export default function HlrLookup() {
             <Badge variant="outline">Numbers found: {stats.totalFound}</Badge>
             <Badge variant="outline">Unique valid: {stats.uniqueValid}</Badge>
             <Badge variant="outline">Duplicates: {stats.duplicates}</Badge>
+            <Badge variant="outline">Estimated cost (based on all numbers): {estimatedCredits} credit{estimatedCredits !== 1 ? "s" : ""} (1 credit / {LOOKUPS_PER_CREDIT} lookups)</Badge>
           </div>
 
           {err && (
@@ -305,10 +328,11 @@ export default function HlrLookup() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-sm">
                       <div className="font-medium">{h.fileName ?? "Lookup"}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {h.createdAt} • {h.count} numbers
-                        {status === "processing" || status === "queued" ? ` • ${processed}/${total}` : ""}
-                      </div>
+                            <div className="text-xs text-muted-foreground">
+                              {h.createdAt} • {h.count} numbers
+                              {status === "processing" || status === "queued" ? ` • ${processed}/${total}` : ""}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">{Math.ceil(((h.total ?? h.count) || 0) / LOOKUPS_PER_CREDIT)} credit{Math.ceil(((h.total ?? h.count) || 0) / LOOKUPS_PER_CREDIT) !== 1 ? "s" : ""} (1 credit / {LOOKUPS_PER_CREDIT} lookups)</div>
                     </div>
 
                     <div className="flex items-center gap-2">
