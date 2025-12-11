@@ -31,6 +31,11 @@ const routes = [
         icon: Users2,
     },
     {
+        name: "HLR",
+        href: "/admin/hlr",
+        icon: FileText,
+    },
+    {
         name: "Settings",
         href: "/admin/account",
         icon: Settings,
