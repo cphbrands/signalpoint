@@ -1,6 +1,6 @@
 "use client";
 import {db} from "@/firebase";
-import {collection, onSnapshot, Timestamp} from "firebase/firestore";
+import {collection, onSnapshot, Timestamp, query, orderBy} from "firebase/firestore";
 import {useEffect, useState} from "react";
 
 type Payment = {
@@ -19,7 +19,7 @@ export default function useAllPayments() {
     const [payments, setPayments] = useState<Payment[]>([]);
     const [loading, setLoading] = useState(true);
     useEffect(() => {
-        const paymentsCol = collection(db, "cryptoPayments");
+        const paymentsCol = query(collection(db, "cryptoPayments"), orderBy("createdAt", "desc"));
         const unsubscribe = onSnapshot(paymentsCol, (snapshot) => {
             const data = snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()})) as Payment[];
             setPayments(data);
