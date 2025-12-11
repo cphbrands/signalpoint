@@ -1,6 +1,6 @@
 "use client";
 
-import {DollarSign, FileText, MessageCircle, Settings, Users2} from "lucide-react";
+import {DollarSign, FileText, MessageCircle, Settings, Users2, CreditCard} from "lucide-react";
 import * as React from "react";
 
 import {Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail} from "@/components/ui/sidebar";
@@ -19,6 +19,11 @@ const routes = [
         name: "Campaigns",
         href: "/admin/campaigns",
         icon: MessageCircle,
+    },
+    {
+        name: "Credits",
+        href: "/admin/credits",
+        icon: CreditCard,
     },
     {
         name: "Payments",
