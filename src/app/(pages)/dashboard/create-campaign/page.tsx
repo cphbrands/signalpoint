@@ -347,6 +347,7 @@ if (!token) {
                 <li>Recipients + credits are calculated server-side (anti-cheat).</li>
               </ul>
             </div>
+            <p className="text-sm text-red-600 mt-2">Please make sure numbers do not start with a "+" and contain no spaces (use country code, e.g. 45xxxxxxxx).</p>
           </div>
 
           <div>
