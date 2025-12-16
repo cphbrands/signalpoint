@@ -357,16 +357,17 @@ if (!token) {
 
             <TooltipProvider>
               <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                <span>Characters: {message.length} | Segments (estimate): {segmentsInfo.segments}</span>
+                <span>We charge per SMS segment.</span>
+                <span className="text-xs text-muted-foreground">Characters: {message.length}</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Info about segments">
+                    <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="SMS segment info">
                       <Info className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
-                    <TooltipContent side="top" align="center">
-                      We charge per SMS segment, not per line. One segment is up to 160 characters without special characters. If you use emojis or special letters (æ, ø, å, etc.), the limit is about 70 characters per segment, so your text can become 2–3 segments.
-                    </TooltipContent>
+                  <TooltipContent side="top" align="center" className="max-w-sm whitespace-normal text-sm">
+                    We charge per SMS segment, not per line. One segment is up to 160 characters without special characters. If you use emojis or special letters (æ, ø, å, etc.), the limit is about 70 characters per segment, so your text can become 2–3 segments.
+                  </TooltipContent>
                 </Tooltip>
               </p>
             </TooltipProvider>
