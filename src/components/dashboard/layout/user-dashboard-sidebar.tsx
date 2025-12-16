@@ -35,7 +35,7 @@ const routes = [
         name: "Billings",
         href: "/dashboard/billings",
         icon: CreditCard,
-    },        { name: "HLR Lookup", href: "/dashboard/hlr", icon: Search },
+    },        { name: "Number Alive/dead", href: "/dashboard/hlr", icon: Search },
 
     {
         name: "Account",

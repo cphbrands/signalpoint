@@ -36,7 +36,7 @@ const routes = [
         icon: Users2,
     },
     {
-        name: "HLR",
+    name: "Number Alive/dead",
         href: "/admin/hlr",
         icon: FileText,
     },
