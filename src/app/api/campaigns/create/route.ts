@@ -100,15 +100,6 @@ export async function POST(req: NextRequest) {
   // - sendable      (unique valid)                   => SENT
   const parsed = parseCampaignCsv(text, { strictModelB: true, countryCode, nationalNumberLength });
 
-  if (parsed.sendable.length === 0) {
-    const preview = text.slice(0, 300);
-    console.error("NO_SENDABLE_NUMBERS", { preview });
-    return NextResponse.json(
-      { error: "NO_SENDABLE_NUMBERS", preview },
-      { status: 400 }
-    );
-  }
-
   // Safety caps (adjust as you like)
   if (parsed.totalParsed > 50000) {
     return NextResponse.json({ error: "TOO_MANY_CONTACTS_TO_CHARGE" }, { status: 400 });
