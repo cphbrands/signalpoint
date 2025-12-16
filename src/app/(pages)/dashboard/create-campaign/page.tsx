@@ -13,6 +13,7 @@ import { auth, storage } from "@/firebase";
 import useCurrentCredits from "@/hooks/use-current-credit";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { Info, Loader2 } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -354,9 +355,21 @@ if (!token) {
         <div className="grid grid-cols-2 gap-4 mt-4">
         </div>
 
-            <p className="text-sm text-gray-500 mt-1">
-              Characters: {message.length} | Segments (estimate): {segmentsInfo.segments}
-            </p>
+            <TooltipProvider>
+              <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+                <span>Characters: {message.length} | Segments (estimate): {segmentsInfo.segments}</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Info about segments">
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                    <TooltipContent side="top" align="center">
+                      We charge per SMS segment, not per line. One segment is up to 160 characters without special characters. If you use emojis or special letters (æ, ø, å, etc.), the limit is about 70 characters per segment, so your text can become 2–3 segments.
+                    </TooltipContent>
+                </Tooltip>
+              </p>
+            </TooltipProvider>
           </div>
 
           <div>
