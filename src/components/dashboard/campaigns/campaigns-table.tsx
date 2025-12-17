@@ -1,7 +1,6 @@
 "use client";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import Link from "next/link";
 import { Campaign } from "@/types/campaign";
 import CampaignStatusBadge from "./user-campaigns-badge";
 
@@ -22,7 +21,6 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => (
           <TableHead>Created</TableHead>
           <TableHead>Delivery Date</TableHead>
           <TableHead title="Number of messages accepted/sent to the provider (not necessarily final DLR)">Sent (accepted)</TableHead>
-          <TableHead>Suggestion</TableHead>
           <TableHead>DLR</TableHead>
           <TableHead>Status</TableHead>
         </TableRow>
@@ -31,7 +29,6 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => (
       <TableBody>
         {campaigns.map((c) => {
           const pct = c.contactCount > 0 ? Math.round((c.delivered * 100) / c.contactCount) : 0;
-          const rate = c.contactCount > 0 ? c.delivered / c.contactCount : null;
 
           let deliveryDate = "—";
           if (c.scheduledAt === "instant") {
@@ -58,21 +55,6 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => (
                   {c.senderId ? (
                     <span className="text-xs text-muted-foreground">Sender: {c.senderId}</span>
                   ) : null}
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                        rate !== null && rate < 0.8
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-slate-100 text-slate-700"
-                      }`}
-                      title={rate !== null ? `Accepted ${(rate * 100).toFixed(0)}%` : "No sends yet"}
-                    >
-                      {rate !== null && rate < 0.8 ? "Low delivery" : "Number Alive/dead"}
-                    </span>
-                    <Link href="/dashboard/hlr" className="text-xs text-primary underline">
-                      Run check
-                    </Link>
-                  </div>
                 </div>
               </TableCell>
               <TableCell className="max-w-sm whitespace-normal break-words">{c.message}</TableCell>
@@ -83,15 +65,6 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => (
               <TableCell>{deliveryDate}</TableCell>
               <TableCell>
                 {c.delivered} ({pct}%)
-              </TableCell>
-
-              <TableCell>
-                {c.contactCount > 0 && pct < 70 ? (
-                  <div className="text-xs inline-flex items-center gap-2 bg-amber-100 text-amber-800 px-2 py-1 rounded">
-                    <span>Low accepted rate ({pct}%)</span>
-                    <a href="/dashboard/hlr" className="underline">Run Number Alive/dead</a>
-                  </div>
-                ) : null}
               </TableCell>
 
               <TableCell>
