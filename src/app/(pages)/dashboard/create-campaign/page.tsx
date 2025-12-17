@@ -397,7 +397,7 @@ if (!token) {
               <strong>Instructions:</strong>
               <ul className="list-disc ml-5 mt-1 space-y-1">
                 <li>Upload your contacts file in CSV/XLS/XLSX format.</li>
-                <li>Recipients + credits are calculated server-side (anti-cheat).</li>
+                <li>Recipients + credits are calculated server-side.</li>
               </ul>
             </div>
             <p className="text-sm text-red-600 mt-2">Please make sure numbers do not start with a "+" and contain no spaces (use country code, e.g. 45xxxxxxxx).</p>

@@ -10,8 +10,6 @@ import {useUser} from "@/context/firebase-context";
 import {db} from "@/firebase";
 import {collection, onSnapshot, query, Timestamp, where} from "firebase/firestore";
 import {Loader2, Send} from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Button as UiButton } from "@/components/ui/button";
 import Link from "next/link";
 import {useEffect, useState} from "react";
 
@@ -107,12 +105,10 @@ export default function Campaigns() {
                     <div>
                         <h1 className="text-3xl font-bold">Campaigns</h1>
                         <p className="text-muted-foreground mt-1">Manage your SMS campaigns</p>
-                        <div className="mt-3">
-                            <div className="inline-flex items-center gap-3 rounded-md bg-slate-50/50 px-3 py-2 text-sm">
-                                <strong>Number Alive/dead</strong>
-                                <span className="text-xs text-muted-foreground">Check which numbers are reachable to improve delivery and save credits.</span>
-                                <Link href="/dashboard/hlr" className="ml-3 inline-block text-primary underline">Run check</Link>
-                            </div>
+                        <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-100/70 px-3 py-1 text-sm text-slate-700">
+                            <span className="font-medium">Number Alive/dead</span>
+                            <span className="text-xs text-muted-foreground">Remove unreachable numbers, save credits.</span>
+                            <Link href="/dashboard/hlr" className="text-primary underline text-sm">Run check</Link>
                         </div>
                     </div>
                     <div className="mt-4 md:mt-0">
@@ -134,54 +130,7 @@ export default function Campaigns() {
                 />
 
                 {filteredCampaigns.length > 0 ? <CampaignTable campaigns={filteredCampaigns} /> : <NoCampaigns />}
-
-                {/* Low-rate modal: if any campaign has accepted rate < 80% and user hasn't dismissed */}
-                <LowRateModal campaigns={filteredCampaigns} />
             </div>
         </UserDashboardLayout>
-    );
-}
-
-function LowRateModal({ campaigns }: { campaigns: any[] }) {
-    const [open, setOpen] = useState(false);
-
-    useEffect(() => {
-        if (!campaigns || campaigns.length === 0) return;
-        const key = "hlr_low_rate_dismissed";
-        try {
-            const dismissed = localStorage.getItem(key);
-            if (dismissed === "true") return;
-        } catch (e) {}
-
-        const anyLow = campaigns.some(c => c.contactCount > 0 && (c.delivered / c.contactCount) < 0.8);
-        if (anyLow) setOpen(true);
-    }, [campaigns]);
-
-    const onClose = (val: boolean) => {
-        setOpen(false);
-    };
-
-    const dismissPermanently = () => {
-        try { localStorage.setItem("hlr_low_rate_dismissed", "true"); } catch (e) {}
-        setOpen(false);
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Low delivery rate detected</DialogTitle>
-                    <DialogDescription>
-                        Some of your recent campaigns have low accepted/send rates — this means many numbers may be invalid. Run a Number Alive/dead check to improve delivery and save credits.
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <UiButton asChild>
-                        <Link href="/dashboard/hlr">Run Number Alive/dead</Link>
-                    </UiButton>
-                    <UiButton variant="ghost" onClick={dismissPermanently} className="ml-2">Don't show again</UiButton>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
     );
 }
