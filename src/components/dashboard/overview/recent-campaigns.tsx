@@ -82,13 +82,15 @@ export default function RecentCampaigns() {
                 </Button>
             </div>
             {/* Persistent banner */}
-            <div className="mb-4 p-2 rounded bg-slate-50/50 flex items-center justify-between">
+            <div className="mb-4 p-3 rounded-lg border border-primary/30 bg-white shadow-sm flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <strong>Number Alive/dead</strong>
-                    <span className="text-sm text-muted-foreground">Check which numbers are reachable to improve delivery and save credits.</span>
+                    <strong className="text-slate-900">Number Alive/dead</strong>
+                    <span className="text-sm text-slate-700">Low send (accepted) rate? Do an HLR to get higher delivery and save money.</span>
                 </div>
                 <div>
-                    <Link href="/dashboard/hlr" className="inline-block text-primary underline">Run check</Link>
+                    <Link href="/dashboard/hlr" className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-sm font-semibold text-white shadow-sm">
+                        Run check
+                    </Link>
                 </div>
             </div>
 
@@ -100,13 +102,15 @@ export default function RecentCampaigns() {
                 const avgPct = Math.round((sumPct / withCounts.length) * 100);
                 if (avgPct < 70) {
                     return (
-                        <div className="mb-4 p-3 rounded bg-amber-100 text-amber-900 flex items-center justify-between">
+                        <div className="mb-4 p-3 rounded-lg border border-amber-300 bg-white shadow-sm text-amber-900 flex items-center justify-between">
                             <div>
                                 <div className="font-semibold">Low delivery rate detected ({avgPct}% accepted)</div>
-                                <div className="text-sm">Run a Number Alive/dead check to increase delivery rates and save credits.</div>
+                                <div className="text-sm text-slate-800">Run a Number Alive/dead check to remove invalid numbers and lift delivery.</div>
                             </div>
                             <div>
-                                <Link href="/dashboard/hlr" className="inline-block bg-amber-800 text-white px-3 py-1 rounded">Run Number Alive/dead</Link>
+                                <Link href="/dashboard/hlr" className="inline-flex items-center rounded-full bg-amber-600 px-3 py-1 text-sm font-semibold text-white shadow-sm">
+                                    Run check
+                                </Link>
                             </div>
                         </div>
                     );
