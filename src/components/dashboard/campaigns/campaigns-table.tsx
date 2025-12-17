@@ -30,12 +30,18 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => (
         {campaigns.map((c) => {
           const pct = c.contactCount > 0 ? Math.round((c.delivered * 100) / c.contactCount) : 0;
 
-          const deliveryDate =
-            c.scheduledAt === "instant"
-              ? "Instant"
-              : typeof (c.scheduledAt as any)?.toDate === "function"
-                ? (c.scheduledAt as any).toDate().toLocaleString()
-                : new Date(String(c.scheduledAt)).toLocaleString();
+          let deliveryDate = "—";
+          if (c.scheduledAt === "instant") {
+            deliveryDate = "Instant";
+          } else if (c.scheduledAt) {
+            if (typeof (c.scheduledAt as any)?.toDate === "function") {
+              const d = (c.scheduledAt as any).toDate();
+              deliveryDate = Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+            } else {
+              const parsed = new Date(String(c.scheduledAt));
+              deliveryDate = Number.isNaN(parsed.getTime()) ? "—" : parsed.toLocaleString();
+            }
+          }
 
           const createdDate = typeof (c.createdAt as any)?.toDate === "function"
             ? (c.createdAt as any).toDate().toLocaleDateString()

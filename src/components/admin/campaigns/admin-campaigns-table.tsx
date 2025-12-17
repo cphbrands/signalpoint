@@ -68,9 +68,21 @@ export default function CampaignTable({campaigns, onStatusChange, onUpdateDelive
                                 <TableCell className="text-center">{c.segments}</TableCell>
                                 <TableCell>{c.createdAt.toDate().toLocaleDateString()}</TableCell>
                                 <TableCell>
-                                    {c.scheduledAt === "instant"
-                                        ? "Instant"
-                                        : new Date(c.scheduledAt.toString()).toLocaleString()}
+                                    {c.scheduledAt === "instant" ? (
+                                        "Instant"
+                                    ) : c.scheduledAt ? (
+                                        (typeof (c.scheduledAt as any)?.toDate === "function"
+                                            ? (() => {
+                                                const d = (c.scheduledAt as any).toDate();
+                                                return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+                                              })()
+                                            : (() => {
+                                                const p = new Date(String(c.scheduledAt));
+                                                return Number.isNaN(p.getTime()) ? "—" : p.toLocaleString();
+                                              })())
+                                    ) : (
+                                        "—"
+                                    )}
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex items-center">
