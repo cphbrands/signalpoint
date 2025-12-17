@@ -16,6 +16,7 @@ interface Campaign {
     fileURL: string;
     requiredCredits: number;
     delivered: number;
+    senderId?: string;
     createdAt: Timestamp;
     scheduledAt: string | Timestamp;
     status: "completed" | "scheduled" | "failed";
@@ -53,7 +54,14 @@ export default function CampaignTable({campaigns, onStatusChange, onUpdateDelive
                     ) : (
                         campaigns.map((c) => (
                             <TableRow key={c.id}>
-                                <TableCell>{c.name}</TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{c.name}</span>
+                                        {c.senderId ? (
+                                            <span className="text-xs text-muted-foreground">Sender: {c.senderId}</span>
+                                        ) : null}
+                                    </div>
+                                </TableCell>
                                 <TableCell className="max-w-sm break-words whitespace-normal pr-5">
                                     {c.message}
                                 </TableCell>
