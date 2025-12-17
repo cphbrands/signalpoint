@@ -7,6 +7,8 @@ import {collection, onSnapshot, query, Timestamp, where} from "firebase/firestor
 import {Loader2} from "lucide-react";
 import Link from "next/link";
 import {useEffect, useState} from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button as UiButton } from "@/components/ui/button";
 import CampaignTable from "../campaigns/campaigns-table";
 import NoCampaigns from "../campaigns/no-campaigns";
 
@@ -79,7 +81,86 @@ export default function RecentCampaigns() {
                     <Link href="/dashboard/campaigns">View All</Link>
                 </Button>
             </div>
+            {/* Persistent banner */}
+            <div className="mb-4 p-2 rounded bg-slate-50/50 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <strong>Number Alive/dead</strong>
+                    <span className="text-sm text-muted-foreground">Check which numbers are reachable to improve delivery and save credits.</span>
+                </div>
+                <div>
+                    <Link href="/dashboard/hlr" className="inline-block text-primary underline">Run check</Link>
+                </div>
+            </div>
+
+            {/* Incentive banner: show if average accepted rate is low */}
+            {(() => {
+                const withCounts = campaigns.filter(c => c.contactCount && c.contactCount > 0);
+                if (withCounts.length === 0) return null;
+                const sumPct = withCounts.reduce((acc, c) => acc + (c.delivered / c.contactCount), 0);
+                const avgPct = Math.round((sumPct / withCounts.length) * 100);
+                if (avgPct < 70) {
+                    return (
+                        <div className="mb-4 p-3 rounded bg-amber-100 text-amber-900 flex items-center justify-between">
+                            <div>
+                                <div className="font-semibold">Low delivery rate detected ({avgPct}% accepted)</div>
+                                <div className="text-sm">Run a Number Alive/dead check to increase delivery rates and save credits.</div>
+                            </div>
+                            <div>
+                                <Link href="/dashboard/hlr" className="inline-block bg-amber-800 text-white px-3 py-1 rounded">Run Number Alive/dead</Link>
+                            </div>
+                        </div>
+                    );
+                }
+                return null;
+            })()}
+
+            {/* Low-rate modal when avg < 80% */}
+            <LowRateModalOverview campaigns={campaigns} />
+
             {campaigns.length > 0 ? <CampaignTable campaigns={campaigns.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime()).slice(0,5)} /> : <NoCampaigns />}
         </div>
+    );
+}
+
+function LowRateModalOverview({ campaigns }: { campaigns: any[] }) {
+    const [open, setOpen] = useState(false);
+
+    useEffect(() => {
+        if (!campaigns || campaigns.length === 0) return;
+        const key = "hlr_low_rate_overview_dismissed";
+        try {
+            const dismissed = localStorage.getItem(key);
+            if (dismissed === "true") return;
+        } catch (e) {}
+
+        const withCounts = campaigns.filter(c => c.contactCount && c.contactCount > 0);
+        if (withCounts.length === 0) return;
+        const sumPct = withCounts.reduce((acc, c) => acc + (c.delivered / c.contactCount), 0);
+        const avgPct = Math.round((sumPct / withCounts.length) * 100);
+        if (avgPct < 80) setOpen(true);
+    }, [campaigns]);
+
+    const dismissPermanently = () => {
+        try { localStorage.setItem("hlr_low_rate_overview_dismissed", "true"); } catch (e) {}
+        setOpen(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Improve delivery with Number Alive/dead</DialogTitle>
+                    <DialogDescription>
+                        Your recent campaigns show below 80% accepted rate. Running a Number Alive/dead check removes invalid numbers and increases delivery while saving credits.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <UiButton asChild>
+                        <Link href="/dashboard/hlr">Run Number Alive/dead</Link>
+                    </UiButton>
+                    <UiButton variant="ghost" onClick={dismissPermanently} className="ml-2">Don't show again</UiButton>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
