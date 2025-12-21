@@ -17,6 +17,8 @@ interface Campaign {
     requiredCredits: number;
     delivered: number;
     senderId?: string;
+    dlrExportUrl?: string | null;
+    dlrDone?: boolean;
     createdAt: Timestamp;
     scheduledAt: string | Timestamp;
     status: "completed" | "scheduled" | "failed";
@@ -41,6 +43,7 @@ export default function CampaignTable({campaigns, onStatusChange, onUpdateDelive
                         <TableHead>Created</TableHead>
                         <TableHead>Delivery Date</TableHead>
                         <TableHead>Delivered</TableHead>
+                        <TableHead>DLR</TableHead>
                         <TableHead>Status</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -99,6 +102,21 @@ export default function CampaignTable({campaigns, onStatusChange, onUpdateDelive
                                             <Pencil size={16} />
                                         </Button>
                                     </div>
+                                </TableCell>
+                                <TableCell>
+                                    {c.dlrExportUrl ? (
+                                        <a
+                                            href={c.dlrExportUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="underline text-blue-600"
+                                            title="Download delivery report as CSV"
+                                        >
+                                            Download
+                                        </a>
+                                    ) : (
+                                        <span className="text-muted-foreground">—</span>
+                                    )}
                                 </TableCell>
                                 <TableCell>
                                     <Select
