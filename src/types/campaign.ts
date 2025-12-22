@@ -7,6 +7,7 @@ export interface Campaign {
   // sender id (alphanumeric short sender name)
   senderId?: string | null;
   contactCount: number;
+  sendableCount?: number;
   segments: number;
   requiredCredits: number;
   delivered: number;

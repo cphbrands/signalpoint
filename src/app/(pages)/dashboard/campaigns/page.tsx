@@ -41,6 +41,7 @@ export default function Campaigns() {
                                     senderId: (d as any).senderId || (d as any).sender || null,
                         message: d.message || "",
                         contactCount: d.contactCount || 0,
+                        sendableCount: (d as any).sendableCount ?? undefined,
                         segments: d.segments || 0,
                         requiredCredits: d.requiredCredits || 0,
                         delivered: d.delivered || 0,

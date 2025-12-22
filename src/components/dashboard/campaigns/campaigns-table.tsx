@@ -46,7 +46,7 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => (
       <TableBody>
         {campaigns.map((c) => {
           const pct = c.contactCount > 0 ? Math.round((c.delivered * 100) / c.contactCount) : 0;
-          const notSent = Math.max((c.contactCount || 0) - (c.delivered || 0), 0);
+          const notSent = Math.max((c.contactCount || 0) - (c.sendableCount ?? c.contactCount ?? 0), 0);
           const pctNotSent = c.contactCount > 0 ? Math.round((notSent * 100) / c.contactCount) : 0;
 
           let deliveryDate = "—";

@@ -14,6 +14,7 @@ interface Campaign {
     name: string;
     message: string;
     contactCount: number;
+    sendableCount?: number;
     segments: number;
     fileURL: string;
     requiredCredits: number;
@@ -121,7 +122,7 @@ export default function CampaignTable({campaigns, onStatusChange, onUpdateDelive
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    {Math.max((c.contactCount || 0) - (c.delivered || 0), 0)}
+                                    {Math.max((c.contactCount || 0) - (c.sendableCount ?? c.contactCount ?? 0), 0)}
                                 </TableCell>
                                 <TableCell>
                                     {c.dlrExportUrl ? (
