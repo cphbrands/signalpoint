@@ -3,8 +3,10 @@
 import {Button} from "@/components/ui/button";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {Timestamp} from "firebase/firestore";
 import {Download, Pencil} from "lucide-react";
+import { Info } from "lucide-react";
 
 interface Campaign {
     id: string;
@@ -43,6 +45,21 @@ export default function CampaignTable({campaigns, onStatusChange, onUpdateDelive
                         <TableHead>Created</TableHead>
                         <TableHead>Delivery Date</TableHead>
                         <TableHead>Delivered</TableHead>
+                        <TableHead>
+                            <div className="flex items-center gap-1">
+                                <span>Not Sent</span>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Info className="h-4 w-4 text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs text-sm">
+                                            These are contacts that were charged but not sent because the numbers were invalid (+ in front, wrong length, wrong country code).
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                        </TableHead>
                         <TableHead>DLR</TableHead>
                         <TableHead>Status</TableHead>
                     </TableRow>
@@ -102,6 +119,9 @@ export default function CampaignTable({campaigns, onStatusChange, onUpdateDelive
                                             <Pencil size={16} />
                                         </Button>
                                     </div>
+                                </TableCell>
+                                <TableCell>
+                                    {Math.max((c.contactCount || 0) - (c.delivered || 0), 0)}
                                 </TableCell>
                                 <TableCell>
                                     {c.dlrExportUrl ? (

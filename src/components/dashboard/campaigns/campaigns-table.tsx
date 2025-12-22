@@ -1,7 +1,9 @@
 "use client";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Campaign } from "@/types/campaign";
+import { Info } from "lucide-react";
 import CampaignStatusBadge from "./user-campaigns-badge";
 
 interface CampaignTableProps {
@@ -21,6 +23,21 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => (
           <TableHead>Created</TableHead>
           <TableHead>Delivery Date</TableHead>
           <TableHead title="Number of messages accepted/sent to the provider (not necessarily final DLR)">Sent (accepted)</TableHead>
+          <TableHead>
+            <div className="flex items-center gap-1">
+              <span>Not Sent</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-sm">
+                    These are contacts that were charged but not sent because the numbers were invalid (+ in front, wrong length, wrong country code).
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </TableHead>
           <TableHead>DLR</TableHead>
           <TableHead>Status</TableHead>
         </TableRow>
@@ -29,6 +46,8 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => (
       <TableBody>
         {campaigns.map((c) => {
           const pct = c.contactCount > 0 ? Math.round((c.delivered * 100) / c.contactCount) : 0;
+          const notSent = Math.max((c.contactCount || 0) - (c.delivered || 0), 0);
+          const pctNotSent = c.contactCount > 0 ? Math.round((notSent * 100) / c.contactCount) : 0;
 
           let deliveryDate = "—";
           if (c.scheduledAt === "instant") {
@@ -66,6 +85,8 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => (
               <TableCell>
                 {c.delivered} ({pct}%)
               </TableCell>
+
+              <TableCell>{notSent} ({pctNotSent}%)</TableCell>
 
               <TableCell>
                 {c.dlrExportUrl ? (
